@@ -11,7 +11,10 @@ namespace ElectronCgi.DotNet
 
         public Connection Build()
         {
-            var connection = new Connection(new Channel(new TabSeparatedInputStreamParser(), new JsonSerialiser()), new JsonSerialiser());
+            var connection = new Connection(
+                    new Channel(new TabSeparatedInputStreamParser(), new JsonSerialiser()),                     
+                    new ResponseDispatcher(), 
+                    new RequestExecutor(new JsonSerialiser()));
             return connection;
         }
     }

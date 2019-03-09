@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using Serilog;
@@ -15,16 +16,17 @@ namespace ElectronCgi.DotNet
     public class Connection
     {
         private readonly IChannel _channel;
-        private readonly ISerialiser _serialiser;
-
+        private readonly IResponseDispatcher _responseDispatcher;
+        private readonly IRequestExecutor _requestExecutor;
         public bool IsLoggingEnabled { get; set; } = true;
         public string LogFilePath { get; set; } = "electroncgi.log";
         private readonly List<IRequestHandler> _handlers = new List<IRequestHandler>();
 
-        public Connection(IChannel channel, ISerialiser serialiser)
+        public Connection(IChannel channel, IResponseDispatcher responseDispatcher, IRequestExecutor requestExecutor)
         {
             _channel = channel;
-            _serialiser = serialiser;
+            _responseDispatcher = responseDispatcher;
+            _requestExecutor = requestExecutor;
         }
 
         public void On(string requestType, Action handler)
@@ -83,79 +85,45 @@ namespace ElectronCgi.DotNet
         {
             try
             {
-                StartAsync(inputStream, writer).Wait();
+                Log.Logger = new LoggerConfiguration().WriteTo.File(LogFilePath).CreateLogger();
+
+                var responsesBufferBlock = CreateBufferBlockForExecutedRequests();
+                var channelClosedCancelationTokenSource = new CancellationTokenSource();
+
+                _channel.Init(inputStream, writer);
+
+                _responseDispatcher.Init(responsesBufferBlock, _channel);
+                _requestExecutor.Init(_handlers, responsesBufferBlock);
+
+                var responseDispatcherTask = _responseDispatcher.StartAsync(channelClosedCancelationTokenSource.Token);
+
+                while (_channel.IsOpen)
+                {
+                    var channelReadResult = _channel.Read();
+
+                    foreach (var request in channelReadResult.Requests)
+                    {
+                        _requestExecutor.ExecuteAsync(request, channelClosedCancelationTokenSource.Token);
+                    }
+                }
+                channelClosedCancelationTokenSource.Cancel();
+
+                responseDispatcherTask.Wait();
             }
             catch (AggregateException ex)
             {
                 var flattenedAggregateException = ex.Flatten();
 
-                if (flattenedAggregateException.InnerExceptions.Count == 1)
-                    throw flattenedAggregateException.InnerException;
-                else
+                foreach (var exception in flattenedAggregateException.InnerExceptions)
                 {
-                    throw;
+                    Log.Error(ex, string.Empty);
                 }
             }
         }
-        private async Task StartAsync(Stream inputStream, TextWriter writer)
+
+        protected virtual BufferBlock<RequestExecutedResult> CreateBufferBlockForExecutedRequests()
         {
-            Log.Logger = new LoggerConfiguration().WriteTo.File(LogFilePath).CreateLogger();
-
-            try
-            {
-                _channel.Init(inputStream, writer);
-
-                while (_channel.IsOpen)
-                {
-                    var channelReadResult = _channel.Read();
-                    if (!channelReadResult.IsIdle)
-                    {
-                        foreach (var request in channelReadResult.Requests)
-                            await HandleRequestAsync(request);
-                    }
-                    else
-                        BackOffForAWhile();
-                }
-            }
-            catch (Exception ex)
-            {
-                if (IsLoggingEnabled)
-                    Log.Error(ex, "");
-                throw;
-            }
-        }
-
-        private async Task HandleRequestAsync(Request request)
-        {
-            var handler = FindHandler(request.Type);
-            try
-            {
-                var arguments = _serialiser.DeserialiseArguments(request.Args, handler.ArgumentsType);
-                var response = await handler.HandleRequestAsync(request.Id, arguments);
-                _channel.Write(response);
-            }
-            catch (SerialiserException ex)
-            {
-                throw new InvalidArgumentsFormatException($"The received arguments for request with Id: {request.Id} and type: '{request.Type}' are invalid. Expected arguments of type {handler.ArgumentsType} but received: {request.Args}", ex);
-            }
-            catch (Exception ex)
-            {
-                throw new HandlerFailedException($"Request handler for request of type '{request.Type}' failed.", ex);
-            }
-        }
-
-        protected virtual void BackOffForAWhile()
-        {
-            Thread.Sleep(10);
-        }
-
-
-        private IRequestHandler FindHandler(string requestType)
-        {
-            var handler = _handlers.SingleOrDefault(h => h.RequestType == requestType);
-            if (handler == null)
-                throw new NoRequestHandlerFoundException($"No request handler found for request type: {requestType}");
-            return handler;
+            return new BufferBlock<RequestExecutedResult>();
         }
     }
 }

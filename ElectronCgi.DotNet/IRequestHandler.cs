@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace ElectronCgi.DotNet
 {
-    internal interface IRequestHandler
+    public interface IRequestHandler
     {
         string RequestType { get; }
         Type ArgumentsType { get; }
