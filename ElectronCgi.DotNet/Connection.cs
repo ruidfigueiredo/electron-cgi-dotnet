@@ -83,12 +83,13 @@ namespace ElectronCgi.DotNet
          */
         public void Start(Stream inputStream, TextWriter writer)
         {
+            var channelClosedCancelationTokenSource = new CancellationTokenSource();
             try
             {
-                Log.Logger = new LoggerConfiguration().WriteTo.File(LogFilePath).CreateLogger();
+                if (IsLoggingEnabled)
+                    Log.Logger = new LoggerConfiguration().WriteTo.File(LogFilePath).CreateLogger();
 
                 var responsesBufferBlock = CreateBufferBlockForExecutedRequests();
-                var channelClosedCancelationTokenSource = new CancellationTokenSource();
 
                 _channel.Init(inputStream, writer);
 
@@ -97,26 +98,36 @@ namespace ElectronCgi.DotNet
 
                 var responseDispatcherTask = _responseDispatcher.StartAsync(channelClosedCancelationTokenSource.Token);
 
-                while (_channel.IsOpen)
+                Task.Run(() =>
                 {
-                    var channelReadResult = _channel.Read();
-
-                    foreach (var request in channelReadResult.Requests)
+                    while (_channel.IsOpen)
                     {
-                        _requestExecutor.ExecuteAsync(request, channelClosedCancelationTokenSource.Token);
-                    }
-                }
-                channelClosedCancelationTokenSource.Cancel();
+                        var channelReadResult = _channel.Read();
 
-                responseDispatcherTask.Wait();
+                        foreach (var request in channelReadResult.Requests)
+                        {
+                            _requestExecutor.ExecuteAsync(request, channelClosedCancelationTokenSource.Token);
+                        }
+                    }
+                    channelClosedCancelationTokenSource.Cancel();
+                });
+
+                responseDispatcherTask.Wait(); //if anything goes wrong this is where the exceptions come from
             }
             catch (AggregateException ex)
             {
-                var flattenedAggregateException = ex.Flatten();
-
-                foreach (var exception in flattenedAggregateException.InnerExceptions)
+                if (IsLoggingEnabled)
                 {
-                    Log.Error(ex, string.Empty);
+                    var flattenedAggregateException = ex.Flatten();
+
+                    foreach (var exception in flattenedAggregateException.InnerExceptions)
+                    {
+                        Log.Error(exception, string.Empty);
+                    }
+                }
+                else
+                {
+                    throw;
                 }
             }
         }
