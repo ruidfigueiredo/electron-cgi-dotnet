@@ -10,7 +10,7 @@ __________
 - Instead of making the process fail when there's an exception in a handler, serialise the exception and "surface" it in Node
 ___________
 
-Electron CGI is a library that enables sending request form NodeJs and have them served by .Net.
+pElectron CGI](https://www.blinkingcaret.com/2019/02/27/electron-cgi/) is a library that enables sending request form NodeJs and have them served by .Net.
 
 The npm package is called [_electron-cgi_](https://www.npmjs.com/package/electron-cgi).
 
