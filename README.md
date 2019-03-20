@@ -1,5 +1,12 @@
 # Electron CGI
 
+## Update version 0.0.2
+- Ability to serve request concurrencty (uses System.Threading.Tasks.DataFlow)
+
+### Next steps
+- Add the ability to send requests form .Net to Node
+- Instead of making the process fail when there's an exception in a handler, serialise the exception and "surface" it in Node
+
 Electron CGI is a library that enables sending request form NodeJs and have them served by .Net.
 
 The npm package is called [_electron-cgi_](https://www.npmjs.com/package/electron-cgi).
