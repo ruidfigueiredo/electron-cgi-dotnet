@@ -4,9 +4,9 @@ using System.Threading.Tasks.Dataflow;
 
 namespace ElectronCgi.DotNet
 {
-    public interface IResponseDispatcher
+    public interface IMessageDispatcher
     {
-        void Init(ISourceBlock<RequestExecutedResult> source, IChannel channel);
+        void Init(ISourceBlock<IChannelMessage> source, IChannel channel);
         Task StartAsync(CancellationToken cancellationToken);
     }
 }

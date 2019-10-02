@@ -13,8 +13,10 @@ namespace ElectronCgi.DotNet
         {
             var connection = new Connection(
                     new Channel(new TabSeparatedInputStreamParser(), new JsonSerialiser()),                     
-                    new ResponseDispatcher(), 
-                    new RequestExecutor(new JsonSerialiser()));
+                    new MessageDispatcher(), 
+                    new RequestExecutor(new JsonSerialiser()),
+                    new JsonSerialiser(),
+                    new System.Threading.Tasks.Dataflow.BufferBlock<IChannelMessage>());
             return connection;
         }
     }

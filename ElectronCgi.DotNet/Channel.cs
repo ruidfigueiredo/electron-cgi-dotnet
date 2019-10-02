@@ -55,10 +55,12 @@ namespace ElectronCgi.DotNet
 
                     var frames = _inputStreamParser.GetCompletedFrames();
                     _inputStreamParser.ClearCompletedFrames();
+                    var messages = frames.Select(message => _serialiser.DeserializeMessage(message));
                     return new ChannelReadResult
                     {
                         IsIdle = false,
-                        Requests = frames.Select(f => _serialiser.DeserialiseRequest(f)).ToArray()
+                        Requests = messages.Where(m => m.IsRequest).Select(m => m.Request).ToArray(),
+                        Responses = messages.Where(m => m.IsResponse).Select(m => m.Response).ToArray()
                     };
                 }
                 else
@@ -83,6 +85,12 @@ namespace ElectronCgi.DotNet
         {
             _outputWriter.Write($"{_serialiser.SerialiseResponse(response)}\t");
         }
+
+        public void Write(Request request)
+        {
+            _outputWriter.Write($"{_serialiser.SerialiseRequest(request)}\t");
+        }
+
 
     }
 }

@@ -1,4 +1,3 @@
-using System;
 using System.IO;
 
 namespace ElectronCgi.DotNet
@@ -8,6 +7,7 @@ namespace ElectronCgi.DotNet
         bool IsOpen { get; }
         ChannelReadResult Read();
         void Write(Response response);
+        void Write(Request response);
         void Init(Stream inputStream, TextWriter outputWriter);
     }
 }

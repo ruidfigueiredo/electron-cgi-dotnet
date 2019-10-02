@@ -7,7 +7,7 @@ namespace ElectronCgi.DotNet
 {
     public interface IRequestExecutor
     {
-        void Init(ICollection<IRequestHandler> handlers, ITargetBlock<RequestExecutedResult> target);
+        void Init(ICollection<IRequestHandler> handlers, ITargetBlock<IChannelMessage> target);
         Task ExecuteAsync(Request request, CancellationToken cancellationToken);
     }
 }
