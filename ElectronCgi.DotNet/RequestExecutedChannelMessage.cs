@@ -2,18 +2,18 @@ namespace ElectronCgi.DotNet
 {
     public class RequestExecutedChannelMessage : IChannelMessage
     {
-        private readonly RequestExecutedResult _requestExecutedResult;
+        public RequestExecutedResult RequestExecutedResult {get; set;}
         public RequestExecutedChannelMessage(RequestExecutedResult requestExecutedResult)
         {
-            _requestExecutedResult = requestExecutedResult;
+            RequestExecutedResult = requestExecutedResult;
         }
         public void Send(IChannel channel)
         {
-            if (_requestExecutedResult.IsFaulted)
+            if (RequestExecutedResult.IsFaulted)
             {
-                throw _requestExecutedResult.Exception;
+                throw RequestExecutedResult.Exception;
             }
-            channel.Write(_requestExecutedResult.Response);
+            channel.Write(RequestExecutedResult.Response);
         }
     }
 }
