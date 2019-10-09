@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 
 namespace ElectronCgi.DotNet
 {
@@ -8,7 +9,7 @@ namespace ElectronCgi.DotNet
 
         Type ResponseArgumentType { get; }
 
-        void HandleResponseAsync(object argument);
+        Task HandleResponseAsync(object argument);
     }
 
     public class ResponseHandler : IResponseHandler
@@ -16,14 +17,14 @@ namespace ElectronCgi.DotNet
         public Guid RequestId {get;}
 
         public Type ResponseArgumentType {get;}
-        private readonly Action<object> _handler;
+        private readonly Func<object, Task> _handler;
 
-        public void HandleResponseAsync(object argument)
+        public async Task HandleResponseAsync(object argument)
         {
-            _handler(Convert.ChangeType(argument, ResponseArgumentType));
+            await _handler(Convert.ChangeType(argument, ResponseArgumentType));
         }
 
-        public ResponseHandler(Guid requestId, Type argumentType, Action<object> handler)
+        public ResponseHandler(Guid requestId, Type argumentType, Func<object, Task> handler)
         {
             RequestId = requestId;
             ResponseArgumentType = argumentType;

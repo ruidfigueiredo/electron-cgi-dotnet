@@ -82,12 +82,67 @@ namespace ElectronCgi.DotNet
             };
             _responseHandlers.Add(
                 new ResponseHandler(request.Id, typeof(TRes),
-                responseHandler != null 
-                    ? new Action<object>(arg => responseHandler((TRes)Convert.ChangeType(arg, typeof(TRes)))) 
-                    : (Action<object>)null));
+                responseHandler != null
+                    ? new Func<object, Task>(arg => { responseHandler((TRes)Convert.ChangeType(arg, typeof(TRes))); return Task.CompletedTask; })
+                    : (Func<object, Task>)null));
             Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
             _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
         }
+
+        public void Send(string requestType)
+        {
+            var request = new Request
+            {
+                Type = requestType,
+                Args = null
+            };
+            Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
+            _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
+        }
+
+
+        public void Send<TRes>(string requestType, Action<TRes> responseHandler)
+        {
+            var request = new Request
+            {
+                Type = requestType,
+                Args = null
+            };
+            _responseHandlers.Add(
+                new ResponseHandler(request.Id, typeof(TRes),
+                new Func<object, Task>(arg => { responseHandler((TRes)Convert.ChangeType(arg, typeof(TRes))); return Task.CompletedTask; })));
+            Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
+            _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
+        }
+
+        public void SendAsync<TRes>(string requestType, Func<TRes, Task> responseHandlerAsync)
+        {
+            var request = new Request
+            {
+                Type = requestType,
+                Args = null
+            };
+            _responseHandlers.Add(
+                new ResponseHandler(request.Id, typeof(TRes),
+                    new Func<object, Task>(arg => responseHandlerAsync((TRes)Convert.ChangeType(arg, typeof(TRes))))));
+            Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
+            _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
+        }
+
+        public void SendAsync<TReq, TRes>(string requestType, TReq args, Func<TRes, Task> responseHandlerAsync)
+        {
+            var request = new Request
+            {
+                Type = requestType,
+                Args = _serializer.SerializeArguments(args)
+            };
+            _responseHandlers.Add(
+                new ResponseHandler(request.Id, typeof(TRes),
+                    new Func<object, Task>(arg => responseHandlerAsync((TRes)Convert.ChangeType(arg, typeof(TRes))))));
+            Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
+            _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
+        }
+
 
         /**
          * This will block the executing thread until inputStream is closed
@@ -131,9 +186,10 @@ namespace ElectronCgi.DotNet
                             Log.Debug($"Received response with id {response.Id} with {response.Result}");
                             //TODO: (RF) move this somewhere more appropriate
                             var registeredResponseHandler = _responseHandlers.SingleOrDefault(r => r.RequestId == response.Id);
-                            if (registeredResponseHandler != null) {
+                            if (registeredResponseHandler != null)
+                            {
                                 var args = _serializer.DeserialiseArguments(response.Result, registeredResponseHandler.ResponseArgumentType);
-                                registeredResponseHandler.HandleResponseAsync(args);
+                                registeredResponseHandler.HandleResponseAsync(args).Wait();
                                 _responseHandlers.Remove(registeredResponseHandler);
                             }
                         }
