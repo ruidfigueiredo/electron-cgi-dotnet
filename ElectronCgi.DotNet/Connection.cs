@@ -73,22 +73,6 @@ namespace ElectronCgi.DotNet
             _requestHandlers.Add(handler);
         }
 
-        public void Send<TReq, TRes>(string requestType, TReq args, Action<TRes> responseHandler = null)
-        {
-            var request = new Request
-            {
-                Type = requestType,
-                Args = _serializer.SerializeArguments(args)
-            };
-            _responseHandlers.Add(
-                new ResponseHandler(request.Id, typeof(TRes),
-                responseHandler != null
-                    ? new Func<object, Task>(arg => { responseHandler((TRes)Convert.ChangeType(arg, typeof(TRes))); return Task.CompletedTask; })
-                    : (Func<object, Task>)null));
-            Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
-            _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
-        }
-
         public void Send(string requestType)
         {
             var request = new Request
@@ -100,8 +84,18 @@ namespace ElectronCgi.DotNet
             _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
         }
 
+        public void Send<TRequestArgs>(string requestType, TRequestArgs args)
+        {
+            var request = new Request
+            {
+                Type = requestType,
+                Args = _serializer.SerializeArguments(args)
+            };
+            Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
+            _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
+        }      
 
-        public void Send<TRes>(string requestType, Action<TRes> responseHandler)
+        public void Send<TResponseArgs>(string requestType, Action<TResponseArgs> responseHandler)
         {
             var request = new Request
             {
@@ -109,27 +103,13 @@ namespace ElectronCgi.DotNet
                 Args = null
             };
             _responseHandlers.Add(
-                new ResponseHandler(request.Id, typeof(TRes),
-                new Func<object, Task>(arg => { responseHandler((TRes)Convert.ChangeType(arg, typeof(TRes))); return Task.CompletedTask; })));
+                new ResponseHandler(request.Id, typeof(TResponseArgs),
+                new Func<object, Task>(arg => { responseHandler((TResponseArgs)Convert.ChangeType(arg, typeof(TResponseArgs))); return Task.CompletedTask; })));
             Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
             _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
         }
 
-        public void SendAsync<TRes>(string requestType, Func<TRes, Task> responseHandlerAsync)
-        {
-            var request = new Request
-            {
-                Type = requestType,
-                Args = null
-            };
-            _responseHandlers.Add(
-                new ResponseHandler(request.Id, typeof(TRes),
-                    new Func<object, Task>(arg => responseHandlerAsync((TRes)Convert.ChangeType(arg, typeof(TRes))))));
-            Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
-            _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
-        }
-
-        public void SendAsync<TReq, TRes>(string requestType, TReq args, Func<TRes, Task> responseHandlerAsync)
+        public void Send<TRequestArgs, TResponseArgs>(string requestType, TRequestArgs args, Action<TResponseArgs> responseHandler)
         {
             var request = new Request
             {
@@ -137,8 +117,36 @@ namespace ElectronCgi.DotNet
                 Args = _serializer.SerializeArguments(args)
             };
             _responseHandlers.Add(
-                new ResponseHandler(request.Id, typeof(TRes),
-                    new Func<object, Task>(arg => responseHandlerAsync((TRes)Convert.ChangeType(arg, typeof(TRes))))));
+                new ResponseHandler(request.Id, typeof(TResponseArgs), 
+                new Func<object, Task>(arg => { responseHandler((TResponseArgs)Convert.ChangeType(arg, typeof(TResponseArgs))); return Task.CompletedTask; })));
+            Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
+            _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
+        }
+
+        public void SendAsync<TResponseArgs>(string requestType, Func<TResponseArgs, Task> responseHandlerAsync)
+        {
+            var request = new Request
+            {
+                Type = requestType,
+                Args = null
+            };
+            _responseHandlers.Add(
+                new ResponseHandler(request.Id, typeof(TResponseArgs),
+                    new Func<object, Task>(arg => responseHandlerAsync((TResponseArgs)Convert.ChangeType(arg, typeof(TResponseArgs))))));
+            Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
+            _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
+        }
+
+        public void SendAsync<TRequestArgs, TResponseArgs>(string requestType, TRequestArgs args, Func<TResponseArgs, Task> responseHandlerAsync)
+        {
+            var request = new Request
+            {
+                Type = requestType,
+                Args = _serializer.SerializeArguments(args)
+            };
+            _responseHandlers.Add(
+                new ResponseHandler(request.Id, typeof(TResponseArgs),
+                    new Func<object, Task>(arg => responseHandlerAsync((TResponseArgs)Convert.ChangeType(arg, typeof(TResponseArgs))))));
             Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
             _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
         }
