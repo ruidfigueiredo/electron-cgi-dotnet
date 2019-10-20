@@ -93,7 +93,7 @@ namespace ElectronCgi.DotNet
             };
             Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
             _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
-        }      
+        }
 
         public void Send<TResponseArgs>(string requestType, Action<TResponseArgs> responseHandler)
         {
@@ -109,6 +109,20 @@ namespace ElectronCgi.DotNet
             _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
         }
 
+        public void Send(string requestType, Action responseHandler)
+        {
+            var request = new Request
+            {
+                Type = requestType,
+                Args = null
+            };
+            _responseHandlers.Add(
+                new ResponseHandler(request.Id,
+                new Func<Task>(() => { responseHandler(); return Task.CompletedTask; })));
+            Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
+            _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
+        }
+
         public void Send<TRequestArgs, TResponseArgs>(string requestType, TRequestArgs args, Action<TResponseArgs> responseHandler)
         {
             var request = new Request
@@ -117,7 +131,7 @@ namespace ElectronCgi.DotNet
                 Args = _serializer.SerializeArguments(args)
             };
             _responseHandlers.Add(
-                new ResponseHandler(request.Id, typeof(TResponseArgs), 
+                new ResponseHandler(request.Id, typeof(TResponseArgs),
                 new Func<object, Task>(arg => { responseHandler((TResponseArgs)Convert.ChangeType(arg, typeof(TResponseArgs))); return Task.CompletedTask; })));
             Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
             _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
@@ -196,8 +210,15 @@ namespace ElectronCgi.DotNet
                             var registeredResponseHandler = _responseHandlers.SingleOrDefault(r => r.RequestId == response.Id);
                             if (registeredResponseHandler != null)
                             {
-                                var args = _serializer.DeserialiseArguments(response.Result, registeredResponseHandler.ResponseArgumentType);
-                                registeredResponseHandler.HandleResponseAsync(args).Wait();
+                                if (registeredResponseHandler.IsArgumentRequiredInHandler)
+                                {
+                                    var args = _serializer.DeserialiseArguments(response.Result, registeredResponseHandler.ResponseArgumentType);
+                                    registeredResponseHandler.HandleResponseAsync(args).Wait();
+                                }
+                                else
+                                {
+                                    registeredResponseHandler.HandleResponseAsync().Wait();
+                                }
                                 _responseHandlers.Remove(registeredResponseHandler);
                             }
                         }

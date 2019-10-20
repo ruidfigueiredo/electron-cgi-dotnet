@@ -7,21 +7,39 @@ namespace ElectronCgi.DotNet
     {
         Guid RequestId { get; }
 
+        bool IsArgumentRequiredInHandler { get; }
+
         Type ResponseArgumentType { get; }
 
-        Task HandleResponseAsync(object argument);
+        Task HandleResponseAsync(object argument = null);
     }
 
     public class ResponseHandler : IResponseHandler
     {
-        public Guid RequestId {get;}
+        public Guid RequestId { get; }
 
-        public Type ResponseArgumentType {get;}
-        private readonly Func<object, Task> _handler;
+        public Type ResponseArgumentType { get; }
 
-        public async Task HandleResponseAsync(object argument)
+        public bool IsArgumentRequiredInHandler => ResponseArgumentType != null;
+
+        private readonly Func<object, Task> _handler = null;
+        private readonly Func<Task> _arglessHandler = null;
+
+        public async Task HandleResponseAsync(object argument = null)
         {
-            await _handler(Convert.ChangeType(argument, ResponseArgumentType));
+            if (IsArgumentRequiredInHandler)
+            {
+                if (_handler == null)
+                    throw new InvalidOperationException($"Response handler for request {RequestId} has no defined handler (invoked with arguments)");
+                await _handler(Convert.ChangeType(argument, ResponseArgumentType));
+            }
+            else
+            {
+                if (_arglessHandler == null)
+                    throw new InvalidOperationException($"Response handler for request {RequestId} has no defined handler (invoked with arguments)");
+
+                await _arglessHandler();
+            }
         }
 
         public ResponseHandler(Guid requestId, Type argumentType, Func<object, Task> handler)
@@ -30,5 +48,13 @@ namespace ElectronCgi.DotNet
             ResponseArgumentType = argumentType;
             _handler = handler;
         }
+
+        public ResponseHandler(Guid requestId, Func<Task> handler)
+        {
+            RequestId = requestId;
+            ResponseArgumentType = null;
+            _arglessHandler = handler;
+        }
+
     }
 }
