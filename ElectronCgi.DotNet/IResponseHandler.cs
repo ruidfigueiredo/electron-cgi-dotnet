@@ -31,13 +31,16 @@ namespace ElectronCgi.DotNet
             {
                 if (_handler == null)
                     throw new InvalidOperationException($"Response handler for request {RequestId} has no defined handler (invoked with arguments)");
-                await _handler(Convert.ChangeType(argument, ResponseArgumentType));
+                
+                //TODO: (RF) add error handling for user's handler failing
+                await _handler(argument);
             }
             else
             {
                 if (_arglessHandler == null)
                     throw new InvalidOperationException($"Response handler for request {RequestId} has no defined handler (invoked with arguments)");
 
+                //TODO: (RF) add error handling for user's handler failing
                 await _arglessHandler();
             }
         }

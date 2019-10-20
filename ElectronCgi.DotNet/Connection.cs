@@ -84,6 +84,34 @@ namespace ElectronCgi.DotNet
             _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
         }
 
+        public void Send(string requestType, Action responseHandler)
+        {
+            var request = new Request
+            {
+                Type = requestType,
+                Args = null
+            };
+            _responseHandlers.Add(
+                new ResponseHandler(request.Id,
+                new Func<Task>(() => { responseHandler(); return Task.CompletedTask; })));
+            Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
+            _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
+        }
+
+        public void SendAsync(string requestType, Func<Task> responseHandler)
+        {
+            var request = new Request
+            {
+                Type = requestType,
+                Args = null
+            };
+            _responseHandlers.Add(
+                new ResponseHandler(request.Id,
+                responseHandler));
+            Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
+            _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
+        }
+
         public void Send<TRequestArgs>(string requestType, TRequestArgs args)
         {
             var request = new Request
@@ -109,7 +137,7 @@ namespace ElectronCgi.DotNet
             _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
         }
 
-        public void Send(string requestType, Action responseHandler)
+        public void SendAsync<TResponseArgs>(string requestType, Func<TResponseArgs, Task> responseHandlerAsync)
         {
             var request = new Request
             {
@@ -117,11 +145,40 @@ namespace ElectronCgi.DotNet
                 Args = null
             };
             _responseHandlers.Add(
+                new ResponseHandler(request.Id, typeof(TResponseArgs),
+                    new Func<object, Task>(arg => responseHandlerAsync((TResponseArgs)Convert.ChangeType(arg, typeof(TResponseArgs))))));
+            Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
+            _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
+        }
+
+
+        public void Send<TRequestArgs>(string requestType, TRequestArgs args, Action responseHandler)
+        {
+            var request = new Request
+            {
+                Type = requestType,
+                Args = _serializer.SerializeArguments(args)
+            };
+            _responseHandlers.Add(
                 new ResponseHandler(request.Id,
                 new Func<Task>(() => { responseHandler(); return Task.CompletedTask; })));
             Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
             _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
         }
+
+        public void SendAsync<TRequestArgs>(string requestType, TRequestArgs args, Func<Task> responseHandler)
+        {
+            var request = new Request
+            {
+                Type = requestType,
+                Args = _serializer.SerializeArguments(args)
+            };
+            _responseHandlers.Add(
+                new ResponseHandler(request.Id,
+                responseHandler));
+            Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
+            _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
+        }        
 
         public void Send<TRequestArgs, TResponseArgs>(string requestType, TRequestArgs args, Action<TResponseArgs> responseHandler)
         {
@@ -133,20 +190,6 @@ namespace ElectronCgi.DotNet
             _responseHandlers.Add(
                 new ResponseHandler(request.Id, typeof(TResponseArgs),
                 new Func<object, Task>(arg => { responseHandler((TResponseArgs)Convert.ChangeType(arg, typeof(TResponseArgs))); return Task.CompletedTask; })));
-            Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
-            _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
-        }
-
-        public void SendAsync<TResponseArgs>(string requestType, Func<TResponseArgs, Task> responseHandlerAsync)
-        {
-            var request = new Request
-            {
-                Type = requestType,
-                Args = null
-            };
-            _responseHandlers.Add(
-                new ResponseHandler(request.Id, typeof(TResponseArgs),
-                    new Func<object, Task>(arg => responseHandlerAsync((TResponseArgs)Convert.ChangeType(arg, typeof(TResponseArgs))))));
             Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
             _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
         }
@@ -164,7 +207,6 @@ namespace ElectronCgi.DotNet
             Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
             _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
         }
-
 
         /**
          * This will block the executing thread until inputStream is closed
