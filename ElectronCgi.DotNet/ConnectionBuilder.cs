@@ -15,6 +15,7 @@ namespace ElectronCgi.DotNet
                     new Channel(new TabSeparatedInputStreamParser(), new JsonSerialiser()),                     
                     new MessageDispatcher(), 
                     new RequestExecutor(new JsonSerialiser()),
+                    new ResponseHandlerExecutor(new JsonSerialiser()),
                     new JsonSerialiser(),
                     new System.Threading.Tasks.Dataflow.BufferBlock<IChannelMessage>());
             return connection;

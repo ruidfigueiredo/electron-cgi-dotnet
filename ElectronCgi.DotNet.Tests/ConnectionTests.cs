@@ -72,6 +72,7 @@ namespace ElectronCgi.DotNet.Tests
         public Mock<IChannel> ChannelMock { get; private set; }
         public Mock<IMessageDispatcher> MessageDispatcherMock { get; private set; }
         public Mock<IRequestExecutor> RequestExecutorMock { get; private set; }
+        public Mock<IResponseHandlerExecutor> ResponseHandlerExecutorMock { get; private set; }
         public Mock<ISerialiser> SerializerMock { get; private set; }
 
         public BufferBlock<IChannelMessage> BufferBlock { get; private set; } = new BufferBlock<IChannelMessage>();
@@ -79,12 +80,14 @@ namespace ElectronCgi.DotNet.Tests
         private TestableConnection(Mock<IChannel> channelMock,
             Mock<IMessageDispatcher> messageDispatcherMock,
             Mock<IRequestExecutor> requestExecutorMock,
+            Mock<IResponseHandlerExecutor> responseHandlerExecutorMock,
             Mock<ISerialiser> serialiserMock)
-                : base(channelMock.Object, messageDispatcherMock.Object, requestExecutorMock.Object, serialiserMock.Object, null) //TODO: (RF) refactor
+                : base(channelMock.Object, messageDispatcherMock.Object, requestExecutorMock.Object, responseHandlerExecutorMock.Object, serialiserMock.Object, null) //TODO: (RF) refactor
         {
             ChannelMock = channelMock;
             MessageDispatcherMock = messageDispatcherMock;
             RequestExecutorMock = requestExecutorMock;
+            ResponseHandlerExecutorMock = responseHandlerExecutorMock;
             SerializerMock = serialiserMock;
         }
 
@@ -95,7 +98,7 @@ namespace ElectronCgi.DotNet.Tests
 
         public static TestableConnection Create()
         {
-            return new TestableConnection(new Mock<IChannel>(), new Mock<IMessageDispatcher>(), new Mock<IRequestExecutor>(), null); 
+            return new TestableConnection(new Mock<IChannel>(), new Mock<IMessageDispatcher>(), new Mock<IRequestExecutor>(), new Mock<IResponseHandlerExecutor>(), null); 
         }
     }
 }

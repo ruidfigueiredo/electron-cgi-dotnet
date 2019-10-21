@@ -14,6 +14,7 @@ namespace ElectronCgi.DotNet
         private readonly IChannel _channel;
         private readonly IMessageDispatcher _messageDispatcher;
         private readonly IRequestExecutor _requestExecutor;
+        private readonly IResponseHandlerExecutor _responseHandlerExecutor;
         private readonly BufferBlock<IChannelMessage> _dispatchMessagesBufferBlock;
         private readonly ISerialiser _serializer;
         public bool IsLoggingEnabled { get; set; } = true;
@@ -21,13 +22,12 @@ namespace ElectronCgi.DotNet
         private readonly List<IRequestHandler> _requestHandlers = new List<IRequestHandler>();
         private readonly List<IResponseHandler> _responseHandlers = new List<IResponseHandler>();
 
-
-
-        public Connection(IChannel channel, IMessageDispatcher messageDispatcher, IRequestExecutor requestExecutor, ISerialiser serialiser, BufferBlock<IChannelMessage> dispatchMessagesBufferBlock)
+        public Connection(IChannel channel, IMessageDispatcher messageDispatcher, IRequestExecutor requestExecutor, IResponseHandlerExecutor responseHandlerExecutor, ISerialiser serialiser, BufferBlock<IChannelMessage> dispatchMessagesBufferBlock)
         {
             _channel = channel;
             _messageDispatcher = messageDispatcher;
             _requestExecutor = requestExecutor;
+            _responseHandlerExecutor = responseHandlerExecutor;
             _serializer = serialiser;
             _dispatchMessagesBufferBlock = dispatchMessagesBufferBlock;
         }
@@ -86,16 +86,7 @@ namespace ElectronCgi.DotNet
 
         public void Send(string requestType, Action responseHandler)
         {
-            var request = new Request
-            {
-                Type = requestType,
-                Args = null
-            };
-            _responseHandlers.Add(
-                new ResponseHandler(request.Id,
-                new Func<Task>(() => { responseHandler(); return Task.CompletedTask; })));
-            Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
-            _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
+            SendAsync(requestType, new Func<Task>(() => { responseHandler(); return Task.CompletedTask; }));
         }
 
         public void SendAsync(string requestType, Func<Task> responseHandler)
@@ -105,9 +96,12 @@ namespace ElectronCgi.DotNet
                 Type = requestType,
                 Args = null
             };
-            _responseHandlers.Add(
-                new ResponseHandler(request.Id,
-                responseHandler));
+
+            lock (_responseHandlers) //TODO: (RF) Get rid of the lock
+                _responseHandlers.Add(
+                    new ResponseHandler(request.Id,
+                    responseHandler));
+
             Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
             _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
         }
@@ -125,16 +119,7 @@ namespace ElectronCgi.DotNet
 
         public void Send<TResponseArgs>(string requestType, Action<TResponseArgs> responseHandler)
         {
-            var request = new Request
-            {
-                Type = requestType,
-                Args = null
-            };
-            _responseHandlers.Add(
-                new ResponseHandler(request.Id, typeof(TResponseArgs),
-                new Func<object, Task>(arg => { responseHandler((TResponseArgs)Convert.ChangeType(arg, typeof(TResponseArgs))); return Task.CompletedTask; })));
-            Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
-            _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
+            SendAsync(requestType, new Func<object, Task>(arg => { responseHandler((TResponseArgs)Convert.ChangeType(arg, typeof(TResponseArgs))); return Task.CompletedTask; }));
         }
 
         public void SendAsync<TResponseArgs>(string requestType, Func<TResponseArgs, Task> responseHandlerAsync)
@@ -144,9 +129,11 @@ namespace ElectronCgi.DotNet
                 Type = requestType,
                 Args = null
             };
-            _responseHandlers.Add(
-                new ResponseHandler(request.Id, typeof(TResponseArgs),
-                    new Func<object, Task>(arg => responseHandlerAsync((TResponseArgs)Convert.ChangeType(arg, typeof(TResponseArgs))))));
+            lock (_responseHandlers) //TODO: (RF) Get rid of the lock
+                _responseHandlers.Add(
+                    new ResponseHandler(request.Id, typeof(TResponseArgs),
+                        new Func<object, Task>(arg => responseHandlerAsync((TResponseArgs)Convert.ChangeType(arg, typeof(TResponseArgs))))));
+
             Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
             _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
         }
@@ -154,16 +141,7 @@ namespace ElectronCgi.DotNet
 
         public void Send<TRequestArgs>(string requestType, TRequestArgs args, Action responseHandler)
         {
-            var request = new Request
-            {
-                Type = requestType,
-                Args = _serializer.SerializeArguments(args)
-            };
-            _responseHandlers.Add(
-                new ResponseHandler(request.Id,
-                new Func<Task>(() => { responseHandler(); return Task.CompletedTask; })));
-            Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
-            _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
+            SendAsync(requestType, args, new Func<Task>(() => { responseHandler(); return Task.CompletedTask; }));
         }
 
         public void SendAsync<TRequestArgs>(string requestType, TRequestArgs args, Func<Task> responseHandler)
@@ -173,25 +151,19 @@ namespace ElectronCgi.DotNet
                 Type = requestType,
                 Args = _serializer.SerializeArguments(args)
             };
-            _responseHandlers.Add(
-                new ResponseHandler(request.Id,
-                responseHandler));
+
+            lock (_responseHandlers) //TODO: (RF) Get rid of the lock
+                _responseHandlers.Add(
+                    new ResponseHandler(request.Id,
+                    responseHandler));
+
             Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
             _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
-        }        
+        }
 
         public void Send<TRequestArgs, TResponseArgs>(string requestType, TRequestArgs args, Action<TResponseArgs> responseHandler)
         {
-            var request = new Request
-            {
-                Type = requestType,
-                Args = _serializer.SerializeArguments(args)
-            };
-            _responseHandlers.Add(
-                new ResponseHandler(request.Id, typeof(TResponseArgs),
-                new Func<object, Task>(arg => { responseHandler((TResponseArgs)Convert.ChangeType(arg, typeof(TResponseArgs))); return Task.CompletedTask; })));
-            Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
-            _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
+            SendAsync(requestType, args, new Func<object, Task>(arg => { responseHandler((TResponseArgs)Convert.ChangeType(arg, typeof(TResponseArgs))); return Task.CompletedTask; }));
         }
 
         public void SendAsync<TRequestArgs, TResponseArgs>(string requestType, TRequestArgs args, Func<TResponseArgs, Task> responseHandlerAsync)
@@ -201,9 +173,12 @@ namespace ElectronCgi.DotNet
                 Type = requestType,
                 Args = _serializer.SerializeArguments(args)
             };
-            _responseHandlers.Add(
-                new ResponseHandler(request.Id, typeof(TResponseArgs),
-                    new Func<object, Task>(arg => responseHandlerAsync((TResponseArgs)Convert.ChangeType(arg, typeof(TResponseArgs))))));
+
+            lock(_responseHandlers) //TODO: (RF) Get rid of the lock
+                _responseHandlers.Add(
+                    new ResponseHandler(request.Id, typeof(TResponseArgs),
+                        new Func<object, Task>(arg => responseHandlerAsync((TResponseArgs)Convert.ChangeType(arg, typeof(TResponseArgs))))));
+
             Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
             _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
         }
@@ -232,8 +207,9 @@ namespace ElectronCgi.DotNet
 
                 _messageDispatcher.Init(_dispatchMessagesBufferBlock, _channel);
                 _requestExecutor.Init(_requestHandlers, _dispatchMessagesBufferBlock);
+                _responseHandlerExecutor.Init(_responseHandlers, _dispatchMessagesBufferBlock);
 
-                var responseDispatcherTask = _messageDispatcher.StartAsync(channelClosedCancelationTokenSource.Token);
+                var messageDispatcherTask = _messageDispatcher.StartAsync(channelClosedCancelationTokenSource.Token);
 
                 Task.Run(() =>
                 {
@@ -248,27 +224,13 @@ namespace ElectronCgi.DotNet
                         foreach (var response in channelReadResult.Responses)
                         {
                             Log.Debug($"Received response with id {response.Id} with {response.Result}");
-                            //TODO: (RF) move this somewhere more appropriate
-                            var registeredResponseHandler = _responseHandlers.SingleOrDefault(r => r.RequestId == response.Id);
-                            if (registeredResponseHandler != null)
-                            {
-                                if (registeredResponseHandler.IsArgumentRequiredInHandler)
-                                {
-                                    var args = _serializer.DeserialiseArguments(response.Result, registeredResponseHandler.ResponseArgumentType);
-                                    registeredResponseHandler.HandleResponseAsync(args).Wait();
-                                }
-                                else
-                                {
-                                    registeredResponseHandler.HandleResponseAsync().Wait();
-                                }
-                                _responseHandlers.Remove(registeredResponseHandler);
-                            }
+                            _responseHandlerExecutor.ExecuteAsync(response, channelClosedCancelationTokenSource.Token);
                         }
                     }
                     channelClosedCancelationTokenSource.Cancel();
                 });
 
-                responseDispatcherTask.Wait(); //if anything goes wrong this is where the exceptions come from
+                messageDispatcherTask.Wait(); //if anything goes wrong this is where the exceptions come from
             }
             catch (AggregateException ex)
             {
