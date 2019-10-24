@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using Serilog;
 
 namespace ElectronCgi.DotNet
 {
@@ -33,14 +34,21 @@ namespace ElectronCgi.DotNet
 
                 if (registeredResponseHandler != null)
                 {
-                    if (registeredResponseHandler.IsArgumentRequiredInHandler)
+                    try
                     {
-                        var args = _serialiser.DeserialiseArguments(response.Result, registeredResponseHandler.ResponseArgumentType);
-                        await registeredResponseHandler.HandleResponseAsync(args);
+                        if (registeredResponseHandler.IsArgumentRequiredInHandler)
+                        {
+                            var args = _serialiser.DeserialiseArguments(response.Result, registeredResponseHandler.ResponseArgumentType);
+                            await registeredResponseHandler.HandleResponseAsync(args);
+                        }
+                        else
+                        {
+                            await registeredResponseHandler.HandleResponseAsync();
+                        }
                     }
-                    else
-                    {
-                        await registeredResponseHandler.HandleResponseAsync();
+                    catch (Exception ex)
+                    {                        
+                        Log.Error($"Failed to run response handler for request with id: {registeredResponseHandler.RequestId}\n{{0}}", ex);
                     }
                     lock (_responseHandlers)
                     {

@@ -83,12 +83,16 @@ namespace ElectronCgi.DotNet
 
         public void Write(Response response)
         {
-            _outputWriter.Write($"{_serialiser.SerialiseResponse(response)}\t");
+            var serialisedResponse = _serialiser.SerialiseResponse(response);
+            Log.Verbose($"Sending Response: {serialisedResponse}");
+            _outputWriter.Write($"{serialisedResponse}\t");
         }
 
         public void Write(Request request)
         {
-            _outputWriter.Write($"{_serialiser.SerialiseRequest(request)}\t");
+            var serialisedRequest = _serialiser.SerialiseRequest(request);
+            Log.Verbose($"Sending Request: {serialisedRequest}");
+            _outputWriter.Write($"{serialisedRequest}\t");
         }
 
 

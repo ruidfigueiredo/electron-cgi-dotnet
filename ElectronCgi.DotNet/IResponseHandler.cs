@@ -32,7 +32,6 @@ namespace ElectronCgi.DotNet
                 if (_handler == null)
                     throw new InvalidOperationException($"Response handler for request {RequestId} has no defined handler (invoked with arguments)");
                 
-                //TODO: (RF) add error handling for user's handler failing
                 await _handler(argument);
             }
             else
@@ -40,7 +39,6 @@ namespace ElectronCgi.DotNet
                 if (_arglessHandler == null)
                     throw new InvalidOperationException($"Response handler for request {RequestId} has no defined handler (invoked with arguments)");
 
-                //TODO: (RF) add error handling for user's handler failing
                 await _arglessHandler();
             }
         }

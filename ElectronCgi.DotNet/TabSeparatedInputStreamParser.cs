@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-
+using Serilog;
 
 namespace ElectronCgi.DotNet
 {
@@ -23,7 +23,7 @@ namespace ElectronCgi.DotNet
 
         public void AddPartial(string partialStreamContent)
         {
-            Serilog.Log.Logger.Debug(partialStreamContent);
+            Log.Verbose($"Received in stdin: {partialStreamContent}");
             _input += partialStreamContent;
             while (_input.IndexOf("\t") != -1)
             {

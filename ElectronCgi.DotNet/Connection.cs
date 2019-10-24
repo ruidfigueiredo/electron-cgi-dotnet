@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using Microsoft.Extensions.Logging;
 using Serilog;
 
 namespace ElectronCgi.DotNet
@@ -17,8 +18,9 @@ namespace ElectronCgi.DotNet
         private readonly IResponseHandlerExecutor _responseHandlerExecutor;
         private readonly BufferBlock<IChannelMessage> _dispatchMessagesBufferBlock;
         private readonly ISerialiser _serializer;
-        public bool IsLoggingEnabled { get; set; } = true;
-        public string LogFilePath { get; set; } = "electroncgi.log";
+        public bool IsLoggingEnabled { get; set; } = false;
+        public LogLevel MinimumLogLevel { get; set; } = LogLevel.Error;
+        public string LogFilePath { get; set; } = "electron-cgi.log";
         private readonly List<IRequestHandler> _requestHandlers = new List<IRequestHandler>();
         private readonly List<IResponseHandler> _responseHandlers = new List<IResponseHandler>();
 
@@ -80,7 +82,6 @@ namespace ElectronCgi.DotNet
                 Type = requestType,
                 Args = null
             };
-            Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
             _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
         }
 
@@ -102,7 +103,6 @@ namespace ElectronCgi.DotNet
                     new ResponseHandler(request.Id,
                     responseHandler));
 
-            Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
             _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
         }
 
@@ -113,7 +113,6 @@ namespace ElectronCgi.DotNet
                 Type = requestType,
                 Args = _serializer.SerializeArguments(args)
             };
-            Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
             _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
         }
 
@@ -134,7 +133,6 @@ namespace ElectronCgi.DotNet
                     new ResponseHandler(request.Id, typeof(TResponseArgs),
                         new Func<object, Task>(arg => responseHandlerAsync((TResponseArgs)Convert.ChangeType(arg, typeof(TResponseArgs))))));
 
-            Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
             _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
         }
 
@@ -157,7 +155,6 @@ namespace ElectronCgi.DotNet
                     new ResponseHandler(request.Id,
                     responseHandler));
 
-            Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
             _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
         }
 
@@ -174,12 +171,11 @@ namespace ElectronCgi.DotNet
                 Args = _serializer.SerializeArguments(args)
             };
 
-            lock(_responseHandlers) //TODO: (RF) Get rid of the lock
+            lock (_responseHandlers) //TODO: (RF) Get rid of the lock
                 _responseHandlers.Add(
                     new ResponseHandler(request.Id, typeof(TResponseArgs),
                         new Func<object, Task>(arg => responseHandlerAsync((TResponseArgs)Convert.ChangeType(arg, typeof(TResponseArgs))))));
 
-            Log.Debug($"Sending request form .net with id {request.Id} and type {request.Type}");
             _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
         }
 
@@ -191,6 +187,36 @@ namespace ElectronCgi.DotNet
             Start(Console.OpenStandardInput(), Console.Out);
         }
 
+        private void InitialiseLogger()
+        {
+            var loggerConfiguration = new LoggerConfiguration();
+            switch (MinimumLogLevel)
+            {
+                case LogLevel.Trace:
+                    loggerConfiguration = loggerConfiguration.MinimumLevel.Verbose();
+                    break;
+                case LogLevel.Information:
+                    loggerConfiguration = loggerConfiguration.MinimumLevel.Information();
+                    break;
+                case LogLevel.Debug:
+                    loggerConfiguration = loggerConfiguration.MinimumLevel.Debug();
+                    break;
+                case LogLevel.Warning:
+                    loggerConfiguration = loggerConfiguration.MinimumLevel.Warning();
+                    break;
+                case LogLevel.Critical:
+                case LogLevel.Error:
+                    loggerConfiguration = loggerConfiguration.MinimumLevel.Error();
+                    break;
+                case LogLevel.None:
+                    return;
+                default:
+                    throw new InvalidOperationException("Unknown log level");
+            }
+            
+            Log.Logger = loggerConfiguration.WriteTo.File(LogFilePath).CreateLogger();
+        }
+
         /**
          * This will block the executing thread until inputStream is closed
          */
@@ -200,8 +226,7 @@ namespace ElectronCgi.DotNet
             try
             {
                 if (IsLoggingEnabled)
-                    Log.Logger = new LoggerConfiguration().MinimumLevel.Debug().WriteTo.File(LogFilePath).CreateLogger();
-
+                    InitialiseLogger();
 
                 _channel.Init(inputStream, writer);
 
@@ -223,7 +248,6 @@ namespace ElectronCgi.DotNet
                         }
                         foreach (var response in channelReadResult.Responses)
                         {
-                            Log.Debug($"Received response with id {response.Id} with {response.Result}");
                             _responseHandlerExecutor.ExecuteAsync(response, channelClosedCancelationTokenSource.Token);
                         }
                     }
