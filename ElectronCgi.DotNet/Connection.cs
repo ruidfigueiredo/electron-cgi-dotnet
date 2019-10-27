@@ -273,10 +273,5 @@ namespace ElectronCgi.DotNet
                 }
             }
         }
-
-        protected virtual BufferBlock<IChannelMessage> CreateBufferBlockForDispatchingMessages()
-        {
-            throw new InvalidOperationException();
-        }
     }
 }

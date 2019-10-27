@@ -2,8 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
@@ -13,8 +11,8 @@ using Xunit;
 namespace ElectronCgi.DotNet.Tests
 {
     public class ConnectionTests
-    {
-        [Fact(Skip="needs refactor")]
+    {        
+        [Fact]
         public void Start_ValidInputs_CallsInitOnChannelRequestDispatcherAndRequestExecutor()
         {
             var connection = TestableConnection.Create();
@@ -27,20 +25,21 @@ namespace ElectronCgi.DotNet.Tests
             connection.ChannelMock.Verify(c => c.Init(inputStream, outputWriter));
             connection.RequestExecutorMock.Verify(c => c.Init(It.IsAny<ICollection<IRequestHandler>>(), connection.BufferBlock));
             connection.MessageDispatcherMock.Verify(c => c.Init(connection.BufferBlock, connection.ChannelMock.Object));
+            connection.ResponseHandlerExecutorMock.Verify(c => c.Init(It.IsAny<ICollection<IResponseHandler>>(), connection.BufferBlock));
         }
 
-        [Fact(Skip="needs refactor")]
+        [Fact]
         public void On_DuplicateRequestType_ThrowsDuplicateHandlerForTypeException()
         {
             var connection = TestableConnection.Create();
             connection.On<string>("requestType", _ => { });
 
-
             var exception = Assert.Throws<DuplicateHandlerForRequestTypeException>(() => connection.On<string>("requestType", _ => { }));
+
             Assert.Contains("requestType", exception.Message);
         }
 
-        [Fact(Skip="needs refactor")]
+        [Fact]
         public void Start_ValidRequestHandler_PassesHandlerToRequestExecutor()
         {
             var connection = TestableConnection.Create();
@@ -63,6 +62,8 @@ namespace ElectronCgi.DotNet.Tests
             Assert.Single(requestHandlers);
             Assert.Contains("requestType", requestHandlers.Select(r => r.RequestType));
         }
+
+        //TODO: (RF) Add tests that check that .Send methods correctly create IResponseHandler entries and interact correctly with the bufferblock
     }
 
 
@@ -75,30 +76,26 @@ namespace ElectronCgi.DotNet.Tests
         public Mock<IResponseHandlerExecutor> ResponseHandlerExecutorMock { get; private set; }
         public Mock<ISerialiser> SerializerMock { get; private set; }
 
-        public BufferBlock<IChannelMessage> BufferBlock { get; private set; } = new BufferBlock<IChannelMessage>();
-
+        public BufferBlock<IChannelMessage> BufferBlock { get; private set; }
         private TestableConnection(Mock<IChannel> channelMock,
             Mock<IMessageDispatcher> messageDispatcherMock,
             Mock<IRequestExecutor> requestExecutorMock,
             Mock<IResponseHandlerExecutor> responseHandlerExecutorMock,
-            Mock<ISerialiser> serialiserMock)
-                : base(channelMock.Object, messageDispatcherMock.Object, requestExecutorMock.Object, responseHandlerExecutorMock.Object, serialiserMock.Object, null) //TODO: (RF) refactor
+            Mock<ISerialiser> serialiserMock, 
+            BufferBlock<IChannelMessage> bufferBlock)
+                : base(channelMock.Object, messageDispatcherMock.Object, requestExecutorMock.Object, responseHandlerExecutorMock.Object, serialiserMock.Object, bufferBlock) 
         {
             ChannelMock = channelMock;
             MessageDispatcherMock = messageDispatcherMock;
             RequestExecutorMock = requestExecutorMock;
             ResponseHandlerExecutorMock = responseHandlerExecutorMock;
             SerializerMock = serialiserMock;
-        }
-
-        protected override BufferBlock<IChannelMessage> CreateBufferBlockForDispatchingMessages()
-        {
-            return BufferBlock;
+            BufferBlock = bufferBlock;
         }
 
         public static TestableConnection Create()
         {
-            return new TestableConnection(new Mock<IChannel>(), new Mock<IMessageDispatcher>(), new Mock<IRequestExecutor>(), new Mock<IResponseHandlerExecutor>(), null); 
+            return new TestableConnection(new Mock<IChannel>(), new Mock<IMessageDispatcher>(), new Mock<IRequestExecutor>(), new Mock<IResponseHandlerExecutor>(), new Mock<ISerialiser>(), new BufferBlock<IChannelMessage>()); 
         }
     }
 }
