@@ -9,7 +9,7 @@ namespace ElectronCgi.DotNet
         Request DeserialiseRequest(string serialiserRequest);
         string SerializeArguments(object arguments);
         string SerialiseResponse(Response response);
-        string SerialiseRequest(Request request);
+        string SerialiseRequest(Request<object> request);
         object DeserialiseArguments(string args, Type argumentsType);
     }
 

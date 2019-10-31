@@ -65,7 +65,7 @@ namespace ElectronCgi.DotNet
             return JsonConvert.SerializeObject(new { Type = "RESPONSE", Response = response }, _jsonSerializerSettings);
         }
 
-        public string SerialiseRequest(Request request)
+        public string SerialiseRequest(Request<object> request)
         {
             return JsonConvert.SerializeObject(new { Type = "REQUEST", Request = request }, _jsonSerializerSettings);
         }

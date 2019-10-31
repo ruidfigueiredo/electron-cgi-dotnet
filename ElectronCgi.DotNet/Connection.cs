@@ -17,20 +17,18 @@ namespace ElectronCgi.DotNet
         private readonly IRequestExecutor _requestExecutor;
         private readonly IResponseHandlerExecutor _responseHandlerExecutor;
         private readonly BufferBlock<IChannelMessage> _dispatchMessagesBufferBlock;
-        private readonly ISerialiser _serializer;
         public bool IsLoggingEnabled { get; set; } = false;
         public LogLevel MinimumLogLevel { get; set; } = LogLevel.Error;
         public string LogFilePath { get; set; } = "electron-cgi.log";
         private readonly List<IRequestHandler> _requestHandlers = new List<IRequestHandler>();
         private readonly List<IResponseHandler> _responseHandlers = new List<IResponseHandler>();
 
-        public Connection(IChannel channel, IMessageDispatcher messageDispatcher, IRequestExecutor requestExecutor, IResponseHandlerExecutor responseHandlerExecutor, ISerialiser serialiser, BufferBlock<IChannelMessage> dispatchMessagesBufferBlock)
+        public Connection(IChannel channel, IMessageDispatcher messageDispatcher, IRequestExecutor requestExecutor, IResponseHandlerExecutor responseHandlerExecutor, BufferBlock<IChannelMessage> dispatchMessagesBufferBlock)
         {
             _channel = channel;
             _messageDispatcher = messageDispatcher;
             _requestExecutor = requestExecutor;
             _responseHandlerExecutor = responseHandlerExecutor;
-            _serializer = serialiser;
             _dispatchMessagesBufferBlock = dispatchMessagesBufferBlock;
         }
 
@@ -43,6 +41,12 @@ namespace ElectronCgi.DotNet
         {
             RegisterRequestHandler(new RequestHandler<T>(requestType, handler));
         }
+
+        public void OnAsync(string requestType, Func<Task> handler)
+        {
+            RegisterRequestHandler(new RequestHandler<object>(requestType, _ => handler()));
+        }
+
 
         public void On<T>(string requestType, Action<T> handler)
         {
@@ -61,10 +65,16 @@ namespace ElectronCgi.DotNet
             }));
         }
 
+        public void OnAsync<TOut>(string requestType, Func<Task<TOut>> handler)
+        {
+            RegisterRequestHandler(new RequestHandler<object, TOut>(requestType, _ => handler()));
+        }
+
         public void OnAsync<TIn, TOut>(string requestType, Func<TIn, Task<TOut>> handler)
         {
             RegisterRequestHandler(new RequestHandler<TIn, TOut>(requestType, handler));
         }
+
 
 
         private void RegisterRequestHandler(IRequestHandler handler)
@@ -77,7 +87,7 @@ namespace ElectronCgi.DotNet
 
         public void Send(string requestType)
         {
-            var request = new Request
+            var request = new Request<object>
             {
                 Type = requestType,
                 Args = null
@@ -92,7 +102,7 @@ namespace ElectronCgi.DotNet
 
         public void SendAsync(string requestType, Func<Task> responseHandler)
         {
-            var request = new Request
+            var request = new Request<object>
             {
                 Type = requestType,
                 Args = null
@@ -108,10 +118,10 @@ namespace ElectronCgi.DotNet
 
         public void Send<TRequestArgs>(string requestType, TRequestArgs args)
         {
-            var request = new Request
+            var request = new Request<object>
             {
                 Type = requestType,
-                Args = _serializer.SerializeArguments(args)
+                Args = args
             };
             _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
         }
@@ -123,7 +133,7 @@ namespace ElectronCgi.DotNet
 
         public void SendAsync<TResponseArgs>(string requestType, Func<TResponseArgs, Task> responseHandlerAsync)
         {
-            var request = new Request
+            var request = new Request<object>
             {
                 Type = requestType,
                 Args = null
@@ -144,10 +154,10 @@ namespace ElectronCgi.DotNet
 
         public void SendAsync<TRequestArgs>(string requestType, TRequestArgs args, Func<Task> responseHandler)
         {
-            var request = new Request
+            var request = new Request<object>
             {
                 Type = requestType,
-                Args = _serializer.SerializeArguments(args)
+                Args = args
             };
 
             lock (_responseHandlers) //TODO: (RF) Get rid of the lock
@@ -165,10 +175,10 @@ namespace ElectronCgi.DotNet
 
         public void SendAsync<TRequestArgs, TResponseArgs>(string requestType, TRequestArgs args, Func<TResponseArgs, Task> responseHandlerAsync)
         {
-            var request = new Request
+            var request = new Request<object>
             {
                 Type = requestType,
-                Args = _serializer.SerializeArguments(args)
+                Args = args
             };
 
             lock (_responseHandlers) //TODO: (RF) Get rid of the lock
@@ -213,7 +223,7 @@ namespace ElectronCgi.DotNet
                 default:
                     throw new InvalidOperationException("Unknown log level");
             }
-            
+
             Log.Logger = loggerConfiguration.WriteTo.File(LogFilePath).CreateLogger();
         }
 

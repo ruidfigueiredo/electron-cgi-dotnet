@@ -74,28 +74,25 @@ namespace ElectronCgi.DotNet.Tests
         public Mock<IMessageDispatcher> MessageDispatcherMock { get; private set; }
         public Mock<IRequestExecutor> RequestExecutorMock { get; private set; }
         public Mock<IResponseHandlerExecutor> ResponseHandlerExecutorMock { get; private set; }
-        public Mock<ISerialiser> SerializerMock { get; private set; }
 
         public BufferBlock<IChannelMessage> BufferBlock { get; private set; }
         private TestableConnection(Mock<IChannel> channelMock,
             Mock<IMessageDispatcher> messageDispatcherMock,
             Mock<IRequestExecutor> requestExecutorMock,
-            Mock<IResponseHandlerExecutor> responseHandlerExecutorMock,
-            Mock<ISerialiser> serialiserMock, 
+            Mock<IResponseHandlerExecutor> responseHandlerExecutorMock,            
             BufferBlock<IChannelMessage> bufferBlock)
-                : base(channelMock.Object, messageDispatcherMock.Object, requestExecutorMock.Object, responseHandlerExecutorMock.Object, serialiserMock.Object, bufferBlock) 
+                : base(channelMock.Object, messageDispatcherMock.Object, requestExecutorMock.Object, responseHandlerExecutorMock.Object, bufferBlock) 
         {
             ChannelMock = channelMock;
             MessageDispatcherMock = messageDispatcherMock;
             RequestExecutorMock = requestExecutorMock;
             ResponseHandlerExecutorMock = responseHandlerExecutorMock;
-            SerializerMock = serialiserMock;
             BufferBlock = bufferBlock;
         }
 
         public static TestableConnection Create()
         {
-            return new TestableConnection(new Mock<IChannel>(), new Mock<IMessageDispatcher>(), new Mock<IRequestExecutor>(), new Mock<IResponseHandlerExecutor>(), new Mock<ISerialiser>(), new BufferBlock<IChannelMessage>()); 
+            return new TestableConnection(new Mock<IChannel>(), new Mock<IMessageDispatcher>(), new Mock<IRequestExecutor>(), new Mock<IResponseHandlerExecutor>(), new BufferBlock<IChannelMessage>()); 
         }
     }
 }

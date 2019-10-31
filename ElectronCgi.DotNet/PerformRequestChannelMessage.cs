@@ -2,9 +2,9 @@ namespace ElectronCgi.DotNet
 {
     public class PerformRequestChannelMessage : IChannelMessage
     {
-        private readonly Request _request;
+        private readonly Request<object> _request;
 
-        public PerformRequestChannelMessage(Request request)
+        public PerformRequestChannelMessage(Request<object> request)
         {
             _request = request;
         }

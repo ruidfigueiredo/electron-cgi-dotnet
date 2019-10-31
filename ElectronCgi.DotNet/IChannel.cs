@@ -7,7 +7,7 @@ namespace ElectronCgi.DotNet
         bool IsOpen { get; }
         ChannelReadResult Read();
         void Write(Response response);
-        void Write(Request response);
+        void Write(Request<object> response);
         void Init(Stream inputStream, TextWriter outputWriter);
     }
 }
