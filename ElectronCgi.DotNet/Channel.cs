@@ -91,7 +91,7 @@ namespace ElectronCgi.DotNet
         public void Write(Request<object> request)
         {
             var serialisedRequest = _serialiser.SerialiseRequest(request);
-            Log.Verbose($"Sending Request: {serialisedRequest}");
+            Log.Verbose($"stdout: {serialisedRequest}");
             _outputWriter.Write($"{serialisedRequest}\t");
         }
 
