@@ -2,8 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
@@ -13,7 +11,7 @@ using Xunit;
 namespace ElectronCgi.DotNet.Tests
 {
     public class ConnectionTests
-    {
+    {        
         [Fact]
         public void Start_ValidInputs_CallsInitOnChannelRequestDispatcherAndRequestExecutor()
         {
@@ -26,7 +24,8 @@ namespace ElectronCgi.DotNet.Tests
 
             connection.ChannelMock.Verify(c => c.Init(inputStream, outputWriter));
             connection.RequestExecutorMock.Verify(c => c.Init(It.IsAny<ICollection<IRequestHandler>>(), connection.BufferBlock));
-            connection.ResponseDispatcherMock.Verify(c => c.Init(connection.BufferBlock, connection.ChannelMock.Object));
+            connection.MessageDispatcherMock.Verify(c => c.Init(connection.BufferBlock, connection.ChannelMock.Object));
+            connection.ResponseHandlerExecutorMock.Verify(c => c.Init(It.IsAny<ICollection<IResponseHandler>>(), connection.BufferBlock));
         }
 
         [Fact]
@@ -35,8 +34,8 @@ namespace ElectronCgi.DotNet.Tests
             var connection = TestableConnection.Create();
             connection.On<string>("requestType", _ => { });
 
-
             var exception = Assert.Throws<DuplicateHandlerForRequestTypeException>(() => connection.On<string>("requestType", _ => { }));
+
             Assert.Contains("requestType", exception.Message);
         }
 
@@ -47,11 +46,11 @@ namespace ElectronCgi.DotNet.Tests
             connection.On<string>("requestType", _ => { });
 
             connection.ChannelMock.Setup(c => c.IsOpen).Returns(false);
-            connection.ResponseDispatcherMock.Setup(re => re.StartAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+            connection.MessageDispatcherMock.Setup(re => re.StartAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
             ICollection<IRequestHandler> requestHandlers = null;
             connection.RequestExecutorMock
-                .Setup(re => re.Init(It.IsAny<ICollection<IRequestHandler>>(), It.IsAny<ITargetBlock<RequestExecutedResult>>()))
-                .Callback<ICollection<IRequestHandler>, ITargetBlock<RequestExecutedResult>>((handlers, target) => {
+                .Setup(re => re.Init(It.IsAny<ICollection<IRequestHandler>>(), It.IsAny<ITargetBlock<IChannelMessage>>()))
+                .Callback<ICollection<IRequestHandler>, ITargetBlock<IChannelMessage>>((handlers, target) => {
                     requestHandlers = handlers;                        
                 });
             var inputStream = new MemoryStream();
@@ -63,6 +62,8 @@ namespace ElectronCgi.DotNet.Tests
             Assert.Single(requestHandlers);
             Assert.Contains("requestType", requestHandlers.Select(r => r.RequestType));
         }
+
+        //TODO: (RF) Add tests that check that .Send methods correctly create IResponseHandler entries and interact correctly with the bufferblock
     }
 
 
@@ -70,29 +71,28 @@ namespace ElectronCgi.DotNet.Tests
     {
         //see: https://www.blinkingcaret.com/2016/02/17/handle-added-removed-dependencies-in-unit-tests/
         public Mock<IChannel> ChannelMock { get; private set; }
-        public Mock<IResponseDispatcher> ResponseDispatcherMock { get; private set; }
+        public Mock<IMessageDispatcher> MessageDispatcherMock { get; private set; }
         public Mock<IRequestExecutor> RequestExecutorMock { get; private set; }
+        public Mock<IResponseHandlerExecutor> ResponseHandlerExecutorMock { get; private set; }
 
-        public BufferBlock<RequestExecutedResult> BufferBlock { get; private set; } = new BufferBlock<RequestExecutedResult>();
-
+        public BufferBlock<IChannelMessage> BufferBlock { get; private set; }
         private TestableConnection(Mock<IChannel> channelMock,
-            Mock<IResponseDispatcher> responseDispatcherMock,
-            Mock<IRequestExecutor> requestExecutorMock)
-                : base(channelMock.Object, responseDispatcherMock.Object, requestExecutorMock.Object)
+            Mock<IMessageDispatcher> messageDispatcherMock,
+            Mock<IRequestExecutor> requestExecutorMock,
+            Mock<IResponseHandlerExecutor> responseHandlerExecutorMock,            
+            BufferBlock<IChannelMessage> bufferBlock)
+                : base(channelMock.Object, messageDispatcherMock.Object, requestExecutorMock.Object, responseHandlerExecutorMock.Object, bufferBlock) 
         {
             ChannelMock = channelMock;
-            ResponseDispatcherMock = responseDispatcherMock;
+            MessageDispatcherMock = messageDispatcherMock;
             RequestExecutorMock = requestExecutorMock;
-        }
-
-        protected override BufferBlock<RequestExecutedResult> CreateBufferBlockForExecutedRequests()
-        {
-            return BufferBlock;
+            ResponseHandlerExecutorMock = responseHandlerExecutorMock;
+            BufferBlock = bufferBlock;
         }
 
         public static TestableConnection Create()
         {
-            return new TestableConnection(new Mock<IChannel>(), new Mock<IResponseDispatcher>(), new Mock<IRequestExecutor>());
+            return new TestableConnection(new Mock<IChannel>(), new Mock<IMessageDispatcher>(), new Mock<IRequestExecutor>(), new Mock<IResponseHandlerExecutor>(), new BufferBlock<IChannelMessage>()); 
         }
     }
 }

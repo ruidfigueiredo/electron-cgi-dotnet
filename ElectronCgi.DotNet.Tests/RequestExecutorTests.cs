@@ -21,7 +21,7 @@ namespace ElectronCgi.DotNet.Tests
                 Id = Guid.NewGuid(),
                 Type = "requestType"
             }, cancelationTokenSource.Token).Wait();
-            var executedRequest = requestExecutor.RequestExecutedResulSourceBlock.Receive();
+            var executedRequest = ((RequestExecutedChannelMessage)requestExecutor.DispatchMessagesSourceBlock.Receive()).RequestExecutedResult;
 
             Assert.True(executedRequest.IsFaulted);
             Assert.Null(executedRequest.Response);
@@ -43,7 +43,7 @@ namespace ElectronCgi.DotNet.Tests
                 Id = Guid.NewGuid(),
                 Type = "requesTypeWithNoHandler"
             }, cancelationTokenSource.Token).Wait();
-            var executedRequest = requestExecutor.RequestExecutedResulSourceBlock.Receive();
+            var executedRequest = ((RequestExecutedChannelMessage)requestExecutor.DispatchMessagesSourceBlock.Receive()).RequestExecutedResult;
 
             Assert.True(executedRequest.IsFaulted);
             Assert.Null(executedRequest.Response);
@@ -72,7 +72,7 @@ namespace ElectronCgi.DotNet.Tests
                 Type = "requestType",
                 Args = "the args for the request"
             }, cancelationTokenSource.Token).Wait();
-            var executedRequest = requestExecutor.RequestExecutedResulSourceBlock.Receive();
+            var executedRequest = ((RequestExecutedChannelMessage)requestExecutor.DispatchMessagesSourceBlock.Receive()).RequestExecutedResult;
 
             Assert.Equal(requestId, executedRequest.Response.Id);
             Assert.False(executedRequest.IsFaulted);
@@ -96,7 +96,7 @@ namespace ElectronCgi.DotNet.Tests
                 Id = Guid.NewGuid(),
                 Type = "requestType"
             }, cancelationTokenSource.Token).Wait();
-            var executedRequest = requestExecutor.RequestExecutedResulSourceBlock.Receive();
+            var executedRequest = ((RequestExecutedChannelMessage)requestExecutor.DispatchMessagesSourceBlock.Receive()).RequestExecutedResult;
 
             Assert.True(executedRequest.IsFaulted);
             Assert.Null(executedRequest.Response);
@@ -123,7 +123,7 @@ namespace ElectronCgi.DotNet.Tests
                 Id = Guid.NewGuid(),
                 Type = "requestType"
             }, cancelationTokenSource.Token).Wait();
-            var executedRequest = requestExecutor.RequestExecutedResulSourceBlock.Receive();
+            var executedRequest = ((RequestExecutedChannelMessage)requestExecutor.DispatchMessagesSourceBlock.Receive()).RequestExecutedResult;
 
             Assert.True(executedRequest.IsFaulted);
             Assert.Null(executedRequest.Response);
@@ -150,12 +150,12 @@ namespace ElectronCgi.DotNet.Tests
     class TestableRequestExecutor : RequestExecutor
     {
         public Mock<ISerialiser> SerialiserMock { get; set; }
-        private BufferBlock<RequestExecutedResult> _requestExecutedResultBufferBlock = new BufferBlock<RequestExecutedResult>();
-        public ISourceBlock<RequestExecutedResult> RequestExecutedResulSourceBlock
+        private BufferBlock<IChannelMessage> _dispatchMessagesSourceBlock = new BufferBlock<IChannelMessage>();
+        public ISourceBlock<IChannelMessage> DispatchMessagesSourceBlock
         {
             get
             {
-                return _requestExecutedResultBufferBlock;
+                return _dispatchMessagesSourceBlock;
             }
         }
         public IList<IRequestHandler> Handlers { get; } = new List<IRequestHandler>();
@@ -163,7 +163,7 @@ namespace ElectronCgi.DotNet.Tests
         private TestableRequestExecutor(Mock<ISerialiser> serialiserMock) : base(serialiserMock.Object)
         {
             SerialiserMock = serialiserMock;
-            Init(Handlers, _requestExecutedResultBufferBlock);
+            Init(Handlers, _dispatchMessagesSourceBlock);
         }
 
         public static TestableRequestExecutor Create()

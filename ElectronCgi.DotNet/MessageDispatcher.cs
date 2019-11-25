@@ -5,11 +5,11 @@ using System.Threading.Tasks.Dataflow;
 
 namespace ElectronCgi.DotNet
 {
-    public class ResponseDispatcher : IResponseDispatcher
+    public class MessageDispatcher : IMessageDispatcher
     {
-        private ISourceBlock<RequestExecutedResult> _source;
+        private ISourceBlock<IChannelMessage> _source;
         private IChannel _channel;
-        public void Init(ISourceBlock<RequestExecutedResult> source, IChannel channel)
+        public void Init(ISourceBlock<IChannelMessage> source, IChannel channel)
         {
             _source = source;
             _channel = channel;
@@ -23,19 +23,15 @@ namespace ElectronCgi.DotNet
                 {
                     while (await _source.OutputAvailableAsync(cancellationToken))
                     {
-                        var requestExecutedResult = _source.Receive();
-                        if (requestExecutedResult.IsFaulted)
-                        {
-                            throw requestExecutedResult.Exception;
-                        }
-                        _channel.Write(requestExecutedResult.Response);
+                        var channelMessage = _source.Receive();
+                        channelMessage.Send(_channel);
                     }
                 }
                 catch (OperationCanceledException)
                 {
                     //all good, time to stop
                 }
-            });            
+            });
         }
     }
 }

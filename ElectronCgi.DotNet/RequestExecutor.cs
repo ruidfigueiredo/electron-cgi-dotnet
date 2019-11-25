@@ -11,13 +11,13 @@ namespace ElectronCgi.DotNet
     {
         private readonly ISerialiser _serialiser;
         private ICollection<IRequestHandler> _handlers;
-        private ITargetBlock<RequestExecutedResult> _target;
+        private ITargetBlock<IChannelMessage> _target;
         public RequestExecutor(ISerialiser serializer)
         {
             _serialiser = serializer;
         }
 
-        public void Init(ICollection<IRequestHandler> handlers, ITargetBlock<RequestExecutedResult> target)
+        public void Init(ICollection<IRequestHandler> handlers, ITargetBlock<IChannelMessage> target)
         {
             _handlers = handlers;
             _target = target;
@@ -33,15 +33,15 @@ namespace ElectronCgi.DotNet
                     var handler = FindHandler(request.Type);
                     var arguments = _serialiser.DeserialiseArguments(request.Args, handler.ArgumentsType);
                     var response = await handler.HandleRequestAsync(request.Id, arguments);
-                    _target.Post(new RequestExecutedResult(response));
+                    _target.Post(new RequestExecutedChannelMessage(new RequestExecutedResult(response)));
                 }
                 catch (NoRequestHandlerFoundException ex)
                 {
-                    _target.Post(new RequestExecutedResult(ex));
+                    _target.Post(new RequestExecutedChannelMessage(new RequestExecutedResult(ex)));
                 }
                 catch (Exception ex)
                 {
-                    _target.Post(new RequestExecutedResult(new HandlerFailedException($"Request handler for request of type '{request.Type}' failed.", ex)));
+                    _target.Post(new RequestExecutedChannelMessage((new RequestExecutedResult(new HandlerFailedException($"Request handler for request of type '{request.Type}' failed.", ex)))));
                 }
             }, cancellationToken);
         }

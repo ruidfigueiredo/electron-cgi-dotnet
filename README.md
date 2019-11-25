@@ -2,8 +2,12 @@
 
 __________
 
+## Update version 0.0.5
+
+- Duplex: ability to send requests from both .Net and Node.js
+
 ## Update version 0.0.2
-- Ability to serve request concurrencty (uses System.Threading.Tasks.DataFlow)
+- Ability to serve request concurrently (uses System.Threading.Tasks.DataFlow)
 
 ### Next steps
 - Add the ability to send requests form .Net to Node

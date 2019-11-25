@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Generic;
-using Newtonsoft.Json;
 using Serilog;
 
 namespace ElectronCgi.DotNet
@@ -25,6 +23,7 @@ namespace ElectronCgi.DotNet
 
         public void AddPartial(string partialStreamContent)
         {
+            Log.Verbose($"stdin: {partialStreamContent}");
             _input += partialStreamContent;
             while (_input.IndexOf("\t") != -1)
             {
