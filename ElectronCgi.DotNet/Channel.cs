@@ -40,10 +40,7 @@ namespace ElectronCgi.DotNet
             if (_inputReader.EndOfStream)
             {
                 _isOpen = false;
-                return new ChannelReadResult
-                {
-                    IsIdle = false
-                };
+                return ChannelReadResult.Empty;
             }
 
             var bytesRead = _inputReader.Read(_buffer, 0, _buffer.Length);
@@ -58,25 +55,18 @@ namespace ElectronCgi.DotNet
                     var messages = frames.Select(message => _serialiser.DeserializeMessage(message));
                     return new ChannelReadResult
                     {
-                        IsIdle = false,
                         Requests = messages.Where(m => m.IsRequest).Select(m => m.Request).ToArray(),
                         Responses = messages.Where(m => m.IsResponse).Select(m => m.Response).ToArray()
                     };
                 }
                 else
                 {
-                    return new ChannelReadResult
-                    {
-                        IsIdle = false
-                    };
+                    return ChannelReadResult.Empty;                    
                 }
             }
             else
             {
-                return new ChannelReadResult
-                {
-                    IsIdle = true
-                };
+                return ChannelReadResult.Empty;
             }
 
         }
