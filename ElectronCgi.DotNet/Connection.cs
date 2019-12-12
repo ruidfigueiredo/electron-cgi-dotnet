@@ -57,6 +57,15 @@ namespace ElectronCgi.DotNet
             }));
         }
 
+        public void On<T>(string requestType, Func<T> handler)
+        {
+            RegisterRequestHandler(new RequestHandler<object, T>(requestType, _ =>
+            {   
+                //we deliberately are ignoring the request parameter
+                return Task.FromResult(handler());
+            }));
+        }        
+
         public void On<TIn, TOut>(string requestType, Func<TIn, TOut> handler)
         {
             RegisterRequestHandler(new RequestHandler<TIn, TOut>(requestType, (TIn args) =>
@@ -268,6 +277,7 @@ namespace ElectronCgi.DotNet
             }
             catch (AggregateException ex)
             {
+                Console.Error.WriteLine(ex.Message);
                 if (IsLoggingEnabled)
                 {
                     var flattenedAggregateException = ex.Flatten();
