@@ -1,19 +1,23 @@
+using System;
+using Serilog;
+
 namespace ElectronCgi.DotNet
 {
     public class RequestExecutedChannelMessage : IChannelMessage
     {
-        public RequestExecutedResult RequestExecutedResult {get; set;}
-        public RequestExecutedChannelMessage(RequestExecutedResult requestExecutedResult)
+        private readonly Response _response;
+        private readonly ISerialiser _serialiser;
+        public RequestExecutedChannelMessage(ISerialiser serialiser, Response response)
         {
-            RequestExecutedResult = requestExecutedResult;
+            _response = response;
+            _serialiser = serialiser;
         }
+        
         public void Send(IChannel channel)
         {
-            if (RequestExecutedResult.IsFaulted)
-            {
-                throw RequestExecutedResult.Exception;
-            }
-            channel.Write(RequestExecutedResult.Response);
+            var serialisedResponse = _serialiser.SerialiseResponse(_response);
+            Log.Verbose($"Sending Response: {serialisedResponse}");            
+            channel.Write(serialisedResponse);
         }
     }
 }

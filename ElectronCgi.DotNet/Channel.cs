@@ -68,6 +68,11 @@ namespace ElectronCgi.DotNet
             {
                 return ChannelReadResult.Empty;
             }
+        }
+
+        public void Write(string message) {
+            Log.Verbose($"Stdout: {message}");
+            _outputWriter.Write($"{message}\t");
 
         }
 
@@ -77,6 +82,14 @@ namespace ElectronCgi.DotNet
             Log.Verbose($"Sending Response: {serialisedResponse}");
             _outputWriter.Write($"{serialisedResponse}\t");
         }
+
+        public void Write(ErrorResponse errorResponse)
+        {
+            var serialisedResponse = _serialiser.SerialiseResponse(errorResponse);
+            Log.Verbose($"Sending Error Response: {serialisedResponse}");
+            _outputWriter.Write($"{serialisedResponse}\t");
+        }
+
 
         public void Write(Request<object> request)
         {

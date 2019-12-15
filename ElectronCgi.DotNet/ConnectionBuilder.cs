@@ -22,7 +22,8 @@ namespace ElectronCgi.DotNet
                     new MessageDispatcher(), 
                     new RequestExecutor(new JsonSerialiser()),
                     new ResponseHandlerExecutor(new JsonSerialiser()),
-                    new System.Threading.Tasks.Dataflow.BufferBlock<IChannelMessage>());
+                    new System.Threading.Tasks.Dataflow.BufferBlock<IChannelMessage>(),
+                    new JsonSerialiser());
             connection.LogFilePath = _logFilePath;
             connection.MinimumLogLevel = _minimumLogLevel;
             connection.IsLoggingEnabled = _isLoggingEnabled;

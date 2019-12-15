@@ -10,7 +10,7 @@ namespace ElectronCgi.DotNet.Tests
 {
     public class RequestExecutorTests
     {
-        [Fact]
+        /*[Fact]
         public void ExecuteAsync_NoHandlers_CreatesResponseWithNoRequestHandlerFoundException()
         {
             var requestExecutor = TestableRequestExecutor.Create();
@@ -144,7 +144,7 @@ namespace ElectronCgi.DotNet.Tests
                 Type = "requestType"
             }, cancelationTokenSource.Token).GetAwaiter().GetResult());
 
-        }
+        }*/
     }
 
     class TestableRequestExecutor : RequestExecutor

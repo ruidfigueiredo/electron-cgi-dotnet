@@ -29,19 +29,21 @@ namespace ElectronCgi.DotNet
             return Task.Run(async () =>
             {
                 try
-                {
-                    var handler = FindHandler(request.Type);
+                {                    
+                    var handler = FindHandler(request.Type);                    
                     var arguments = _serialiser.DeserialiseArguments(request.Args, handler.ArgumentsType);
-                    var response = await handler.HandleRequestAsync(request.Id, arguments);
-                    _target.Post(new RequestExecutedChannelMessage(new RequestExecutedResult(response)));
+                    var response = await handler.HandleRequestAsync(request.Id, arguments);                    
+                    _target.Post(new RequestExecutedChannelMessage(_serialiser, response));
                 }
                 catch (NoRequestHandlerFoundException ex)
                 {
-                    _target.Post(new RequestExecutedChannelMessage(new RequestExecutedResult(ex)));
+                    Console.Error.WriteLine(ex.Message);
+                    throw;
                 }
                 catch (Exception ex)
                 {
-                    _target.Post(new RequestExecutedChannelMessage((new RequestExecutedResult(new HandlerFailedException($"Request handler for request of type '{request.Type}' failed.", ex)))));
+                    Console.Error.WriteLine(ex.Message);
+                    throw;
                 }
             }, cancellationToken);
         }
