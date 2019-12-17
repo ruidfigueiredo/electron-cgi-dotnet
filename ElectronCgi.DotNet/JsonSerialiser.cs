@@ -23,18 +23,6 @@ namespace ElectronCgi.DotNet
             }
         }
 
-        public string SerializeArguments(object arguments)
-        {
-            try
-            {
-                return JsonConvert.SerializeObject(arguments);
-            }
-            catch (JsonSerializationException ex)
-            {
-                throw new SerialiserException($"Could not serilize arguments: {arguments}.", ex);
-            }
-        }
-
         public Request DeserialiseRequest(string serialiserRequest)
         {
             try
@@ -59,22 +47,16 @@ namespace ElectronCgi.DotNet
             }
         }
 
-
-        public string SerialiseResponse(Response response)
+        public string Serialise(object obj)
         {
-            return JsonConvert.SerializeObject(new { Type = "RESPONSE", Response = response }, _jsonSerializerSettings);
+            try
+            {
+                return JsonConvert.SerializeObject(obj, _jsonSerializerSettings);
+            }
+            catch (JsonSerializationException ex)
+            {
+                throw new SerialiserException($"Serialisation failed for: {obj}.", ex);
+            }
         }
-
-        public string SerialiseResponse(ErrorResponse response)
-        {
-            return JsonConvert.SerializeObject(new { Type = "ERROR", Response = response }, _jsonSerializerSettings);
-        }
-
-
-        public string SerialiseRequest(Request<object> request)
-        {
-            return JsonConvert.SerializeObject(new { Type = "REQUEST", Request = request }, _jsonSerializerSettings);
-        }
-
     }
 }

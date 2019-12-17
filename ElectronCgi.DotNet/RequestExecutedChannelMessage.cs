@@ -1,4 +1,3 @@
-using System;
 using Serilog;
 
 namespace ElectronCgi.DotNet
@@ -15,7 +14,7 @@ namespace ElectronCgi.DotNet
         
         public void Send(IChannel channel)
         {
-            var serialisedResponse = _serialiser.SerialiseResponse(_response);
+            var serialisedResponse = _serialiser.Serialise(new { Type = "RESPONSE", Response = _response });
             Log.Verbose($"Sending Response: {serialisedResponse}");            
             channel.Write(serialisedResponse);
         }

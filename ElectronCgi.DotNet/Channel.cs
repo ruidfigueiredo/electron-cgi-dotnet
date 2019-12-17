@@ -75,29 +75,5 @@ namespace ElectronCgi.DotNet
             _outputWriter.Write($"{message}\t");
 
         }
-
-        public void Write(Response response)
-        {
-            var serialisedResponse = _serialiser.SerialiseResponse(response);
-            Log.Verbose($"Sending Response: {serialisedResponse}");
-            _outputWriter.Write($"{serialisedResponse}\t");
-        }
-
-        public void Write(ErrorResponse errorResponse)
-        {
-            var serialisedResponse = _serialiser.SerialiseResponse(errorResponse);
-            Log.Verbose($"Sending Error Response: {serialisedResponse}");
-            _outputWriter.Write($"{serialisedResponse}\t");
-        }
-
-
-        public void Write(Request<object> request)
-        {
-            var serialisedRequest = _serialiser.SerialiseRequest(request);
-            Log.Verbose($"stdout: {serialisedRequest}");
-            _outputWriter.Write($"{serialisedRequest}\t");
-        }
-
-
     }
 }

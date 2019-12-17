@@ -10,11 +10,14 @@ namespace ElectronCgi.DotNet
     public class RequestExecutor : IRequestExecutor
     {
         private readonly ISerialiser _serialiser;
+        private readonly IChannelMessageFactory _channelMessageFactory;
         private ICollection<IRequestHandler> _handlers;
         private ITargetBlock<IChannelMessage> _target;
-        public RequestExecutor(ISerialiser serializer)
+        
+        public RequestExecutor(ISerialiser serializer, IChannelMessageFactory channelMessageFactory)
         {
             _serialiser = serializer;
+            _channelMessageFactory = channelMessageFactory;
         }
 
         public void Init(ICollection<IRequestHandler> handlers, ITargetBlock<IChannelMessage> target)
@@ -33,7 +36,7 @@ namespace ElectronCgi.DotNet
                     var handler = FindHandler(request.Type);                    
                     var arguments = _serialiser.DeserialiseArguments(request.Args, handler.ArgumentsType);
                     var response = await handler.HandleRequestAsync(request.Id, arguments);                    
-                    _target.Post(new RequestExecutedChannelMessage(_serialiser, response));
+                    _target.Post(_channelMessageFactory.CreateResponseMessage(response));
                 }
                 catch (NoRequestHandlerFoundException ex)
                 {

@@ -14,7 +14,7 @@ namespace ElectronCgi.DotNet
         }
         public void Send(IChannel channel)
         {
-            var serialisedRequest = _serialiser.SerialiseRequest(_request);
+            var serialisedRequest = _serialiser.Serialise(new { Type = "REQUEST", Request = _request });
             Log.Verbose($"stdout: {serialisedRequest}");            
             channel.Write(serialisedRequest);
         }
