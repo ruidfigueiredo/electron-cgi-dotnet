@@ -43,10 +43,12 @@ namespace ElectronCgi.DotNet
                     Console.Error.WriteLine(ex.Message);
                     throw;
                 }
+                catch(HandlerFailedException ex){
+                    _target.Post(_channelMessageFactory.CreateRequestFailedChannelMessage(request.Id, ex.Error));
+                }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine(ex.Message);
-                    throw;
+                    _target.Post(_channelMessageFactory.CreateRequestFailedChannelMessage(request.Id, ex));
                 }
             }, cancellationToken);
         }

@@ -19,9 +19,9 @@ namespace ElectronCgi.DotNet
             return new RequestExecutedChannelMessage(_serialiser, response);
         }
 
-        public RequestFailedChannelMessage CreateRequestFailedChannelMessage(Guid requestId, string errorMessage)
+        public RequestFailedChannelMessage CreateRequestFailedChannelMessage(Guid requestId, object error)
         {
-            return new RequestFailedChannelMessage(_serialiser, requestId, errorMessage);
+            return new RequestFailedChannelMessage(_serialiser, requestId, error);
         }
     }
 }
