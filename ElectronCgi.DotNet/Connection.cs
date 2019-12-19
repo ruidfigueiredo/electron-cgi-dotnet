@@ -200,6 +200,14 @@ namespace ElectronCgi.DotNet
             _dispatchMessagesBufferBlock.Post(_channelMessageFactory.CreateRequestMessage(request));
         }
 
+        public Task<TResponseArgs> SendAsync<TRequestArgs, TResponseArgs>(string requestType, TRequestArgs args) {
+            var taskCompletionSource = new TaskCompletionSource<TResponseArgs>();
+            Send(requestType, args, (TResponseArgs result) => {
+                taskCompletionSource.SetResult(result);                
+            });
+            return taskCompletionSource.Task;
+        }
+
         /**
          * This will block the executing thread until inputStream is closed
          */
