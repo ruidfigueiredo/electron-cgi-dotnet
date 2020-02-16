@@ -71,7 +71,7 @@ namespace ElectronCgi.DotNet
         }
 
         public void Write(string message) {
-            Log.Verbose($"Stdout: {message}");
+            Log.Verbose($"STDOUT: {message}");
             _outputWriter.Write($"{message}\t");
 
         }

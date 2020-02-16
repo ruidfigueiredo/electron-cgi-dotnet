@@ -23,7 +23,7 @@ namespace ElectronCgi.DotNet
 
         public void AddPartial(string partialStreamContent)
         {
-            Log.Verbose($"stdin: {partialStreamContent}");
+            Log.Verbose($"STDIN: {partialStreamContent}");
             _input += partialStreamContent;
             while (_input.IndexOf("\t") != -1)
             {

@@ -14,8 +14,7 @@ namespace ElectronCgi.DotNet
         
         public void Send(IChannel channel)
         {
-            var serialisedResponse = _serialiser.Serialise(new { Type = "RESPONSE", Response = _response });
-            Log.Verbose($"Sending Response: {serialisedResponse}");            
+            var serialisedResponse = _serialiser.Serialise(new { Type = "RESPONSE", Response = _response });            
             channel.Write(serialisedResponse);
         }
     }
