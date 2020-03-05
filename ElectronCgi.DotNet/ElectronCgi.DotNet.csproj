@@ -7,11 +7,11 @@
   <PropertyGroup>
     <PackageId>ElectronCgi.DotNet</PackageId>
     <Title>Electron CGI DotNet</Title>
-    <PackageVersion>0.0.5</PackageVersion>
+    <PackageVersion>1.0.0</PackageVersion>
     <Authors>Rui Figueiredo rui@blinkingcaret.com (https://www.blinkingcaret.com)</Authors>
     <PackageDescription>Package to enable connection .Net with Node applications through the electron-cgi npm package</PackageDescription>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <PackageReleaseNotes>Added the ability to send requests from .Net to Node.js</PackageReleaseNotes>
+    <PackageReleaseNotes>Errors in handlers are sent to Node.js</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

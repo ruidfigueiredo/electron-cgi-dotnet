@@ -17,12 +17,15 @@ namespace ElectronCgi.DotNet
 
         public Connection Build()
         {
+            var serialiser = new JsonSerialiser();
+            var channelMessageFactory = new ChannelMessageFactory(serialiser);
             var connection = new Connection(
-                    new Channel(new TabSeparatedInputStreamParser(), new JsonSerialiser()),                     
+                    new Channel(new TabSeparatedInputStreamParser(), serialiser),                     
                     new MessageDispatcher(), 
-                    new RequestExecutor(new JsonSerialiser()),
-                    new ResponseHandlerExecutor(new JsonSerialiser()),
-                    new System.Threading.Tasks.Dataflow.BufferBlock<IChannelMessage>());
+                    new RequestExecutor(serialiser, channelMessageFactory),
+                    new ResponseHandlerExecutor(serialiser),
+                    new System.Threading.Tasks.Dataflow.BufferBlock<IChannelMessage>(),
+                    channelMessageFactory);
             connection.LogFilePath = _logFilePath;
             connection.MinimumLogLevel = _minimumLogLevel;
             connection.IsLoggingEnabled = _isLoggingEnabled;

@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -74,25 +73,27 @@ namespace ElectronCgi.DotNet.Tests
         public Mock<IMessageDispatcher> MessageDispatcherMock { get; private set; }
         public Mock<IRequestExecutor> RequestExecutorMock { get; private set; }
         public Mock<IResponseHandlerExecutor> ResponseHandlerExecutorMock { get; private set; }
-
+        public Mock<IChannelMessageFactory> ChannelMessageFactoryMock { get; private set; }
         public BufferBlock<IChannelMessage> BufferBlock { get; private set; }
         private TestableConnection(Mock<IChannel> channelMock,
             Mock<IMessageDispatcher> messageDispatcherMock,
             Mock<IRequestExecutor> requestExecutorMock,
             Mock<IResponseHandlerExecutor> responseHandlerExecutorMock,            
-            BufferBlock<IChannelMessage> bufferBlock)
-                : base(channelMock.Object, messageDispatcherMock.Object, requestExecutorMock.Object, responseHandlerExecutorMock.Object, bufferBlock) 
+            BufferBlock<IChannelMessage> bufferBlock,
+            Mock<IChannelMessageFactory> channelMessageFactoryMock)
+                : base(channelMock.Object, messageDispatcherMock.Object, requestExecutorMock.Object, responseHandlerExecutorMock.Object, bufferBlock, channelMessageFactoryMock.Object) 
         {
             ChannelMock = channelMock;
             MessageDispatcherMock = messageDispatcherMock;
             RequestExecutorMock = requestExecutorMock;
             ResponseHandlerExecutorMock = responseHandlerExecutorMock;
             BufferBlock = bufferBlock;
+            ChannelMessageFactoryMock = channelMessageFactoryMock;
         }
 
         public static TestableConnection Create()
         {
-            return new TestableConnection(new Mock<IChannel>(), new Mock<IMessageDispatcher>(), new Mock<IRequestExecutor>(), new Mock<IResponseHandlerExecutor>(), new BufferBlock<IChannelMessage>()); 
+            return new TestableConnection(new Mock<IChannel>(), new Mock<IMessageDispatcher>(), new Mock<IRequestExecutor>(), new Mock<IResponseHandlerExecutor>(), new BufferBlock<IChannelMessage>(), new Mock<IChannelMessageFactory>()); 
         }
     }
 }

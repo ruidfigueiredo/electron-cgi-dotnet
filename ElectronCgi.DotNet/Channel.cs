@@ -40,10 +40,7 @@ namespace ElectronCgi.DotNet
             if (_inputReader.EndOfStream)
             {
                 _isOpen = false;
-                return new ChannelReadResult
-                {
-                    IsIdle = false
-                };
+                return ChannelReadResult.Empty;
             }
 
             var bytesRead = _inputReader.Read(_buffer, 0, _buffer.Length);
@@ -58,43 +55,25 @@ namespace ElectronCgi.DotNet
                     var messages = frames.Select(message => _serialiser.DeserializeMessage(message));
                     return new ChannelReadResult
                     {
-                        IsIdle = false,
                         Requests = messages.Where(m => m.IsRequest).Select(m => m.Request).ToArray(),
                         Responses = messages.Where(m => m.IsResponse).Select(m => m.Response).ToArray()
                     };
                 }
                 else
                 {
-                    return new ChannelReadResult
-                    {
-                        IsIdle = false
-                    };
+                    return ChannelReadResult.Empty;                    
                 }
             }
             else
             {
-                return new ChannelReadResult
-                {
-                    IsIdle = true
-                };
+                return ChannelReadResult.Empty;
             }
-
         }
 
-        public void Write(Response response)
-        {
-            var serialisedResponse = _serialiser.SerialiseResponse(response);
-            Log.Verbose($"Sending Response: {serialisedResponse}");
-            _outputWriter.Write($"{serialisedResponse}\t");
+        public void Write(string message) {
+            Log.Verbose($"STDOUT: {message}");
+            _outputWriter.Write($"{message}\t");
+
         }
-
-        public void Write(Request<object> request)
-        {
-            var serialisedRequest = _serialiser.SerialiseRequest(request);
-            Log.Verbose($"stdout: {serialisedRequest}");
-            _outputWriter.Write($"{serialisedRequest}\t");
-        }
-
-
     }
 }

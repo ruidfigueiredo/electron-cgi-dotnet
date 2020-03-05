@@ -1,6 +1,12 @@
 # Electron CGI
 
-__________
+## Update version 1.0.0
+
+- Error propagation to Node.js
+
+    - An exception in a handler will be serialized and sent to Node.js (requires electron-cgi 1.0.0) and won't crash the process
+
+- Bugfixes
 
 ## Update version 0.0.5
 

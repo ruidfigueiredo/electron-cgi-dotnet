@@ -6,10 +6,8 @@ namespace ElectronCgi.DotNet
     public interface ISerialiser 
     {
         ChannelMessage DeserializeMessage(string message);
-        Request DeserialiseRequest(string serialiserRequest);
-        string SerializeArguments(object arguments);
-        string SerialiseResponse(Response response);
-        string SerialiseRequest(Request<object> request);
+        Request DeserialiseRequest(string serialiserRequest);        
+        string Serialise(object obj);
         object DeserialiseArguments(string args, Type argumentsType);
     }
 

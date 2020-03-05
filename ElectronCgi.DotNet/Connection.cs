@@ -15,6 +15,7 @@ namespace ElectronCgi.DotNet
         private readonly IChannel _channel;
         private readonly IMessageDispatcher _messageDispatcher;
         private readonly IRequestExecutor _requestExecutor;
+        private readonly IChannelMessageFactory _channelMessageFactory;
         private readonly IResponseHandlerExecutor _responseHandlerExecutor;
         private readonly BufferBlock<IChannelMessage> _dispatchMessagesBufferBlock;
         public bool IsLoggingEnabled { get; set; } = false;
@@ -23,13 +24,14 @@ namespace ElectronCgi.DotNet
         private readonly List<IRequestHandler> _requestHandlers = new List<IRequestHandler>();
         private readonly List<IResponseHandler> _responseHandlers = new List<IResponseHandler>();
 
-        public Connection(IChannel channel, IMessageDispatcher messageDispatcher, IRequestExecutor requestExecutor, IResponseHandlerExecutor responseHandlerExecutor, BufferBlock<IChannelMessage> dispatchMessagesBufferBlock)
+        public Connection(IChannel channel, IMessageDispatcher messageDispatcher, IRequestExecutor requestExecutor, IResponseHandlerExecutor responseHandlerExecutor, BufferBlock<IChannelMessage> dispatchMessagesBufferBlock, IChannelMessageFactory channelMessageFactory)
         {
             _channel = channel;
             _messageDispatcher = messageDispatcher;
             _requestExecutor = requestExecutor;
             _responseHandlerExecutor = responseHandlerExecutor;
             _dispatchMessagesBufferBlock = dispatchMessagesBufferBlock;
+            _channelMessageFactory = channelMessageFactory;
         }
 
         public void On(string requestType, Action handler)
@@ -56,6 +58,15 @@ namespace ElectronCgi.DotNet
                 return Task.CompletedTask;
             }));
         }
+
+        public void On<T>(string requestType, Func<T> handler)
+        {
+            RegisterRequestHandler(new RequestHandler<object, T>(requestType, _ =>
+            {   
+                //we are deliberately ignoring the request parameter
+                return Task.FromResult(handler());
+            }));
+        }        
 
         public void On<TIn, TOut>(string requestType, Func<TIn, TOut> handler)
         {
@@ -92,7 +103,7 @@ namespace ElectronCgi.DotNet
                 Type = requestType,
                 Args = null
             };
-            _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
+            _dispatchMessagesBufferBlock.Post(_channelMessageFactory.CreateRequestMessage(request));
         }
 
         public void Send(string requestType, Action responseHandler)
@@ -113,7 +124,7 @@ namespace ElectronCgi.DotNet
                     new ResponseHandler(request.Id,
                     responseHandler));
 
-            _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
+            _dispatchMessagesBufferBlock.Post(_channelMessageFactory.CreateRequestMessage(request));
         }
 
         public void Send<TRequestArgs>(string requestType, TRequestArgs args)
@@ -123,7 +134,7 @@ namespace ElectronCgi.DotNet
                 Type = requestType,
                 Args = args
             };
-            _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
+            _dispatchMessagesBufferBlock.Post(_channelMessageFactory.CreateRequestMessage(request));
         }
 
         public void Send<TResponseArgs>(string requestType, Action<TResponseArgs> responseHandler)
@@ -143,7 +154,7 @@ namespace ElectronCgi.DotNet
                     new ResponseHandler(request.Id, typeof(TResponseArgs),
                         new Func<object, Task>(arg => responseHandlerAsync((TResponseArgs)Convert.ChangeType(arg, typeof(TResponseArgs))))));
 
-            _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
+            _dispatchMessagesBufferBlock.Post(_channelMessageFactory.CreateRequestMessage(request));
         }
 
 
@@ -165,7 +176,7 @@ namespace ElectronCgi.DotNet
                     new ResponseHandler(request.Id,
                     responseHandler));
 
-            _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
+            _dispatchMessagesBufferBlock.Post(_channelMessageFactory.CreateRequestMessage(request));
         }
 
         public void Send<TRequestArgs, TResponseArgs>(string requestType, TRequestArgs args, Action<TResponseArgs> responseHandler)
@@ -186,7 +197,15 @@ namespace ElectronCgi.DotNet
                     new ResponseHandler(request.Id, typeof(TResponseArgs),
                         new Func<object, Task>(arg => responseHandlerAsync((TResponseArgs)Convert.ChangeType(arg, typeof(TResponseArgs))))));
 
-            _dispatchMessagesBufferBlock.Post(new PerformRequestChannelMessage(request));
+            _dispatchMessagesBufferBlock.Post(_channelMessageFactory.CreateRequestMessage(request));
+        }
+
+        public Task<TResponseArgs> SendAsync<TRequestArgs, TResponseArgs>(string requestType, TRequestArgs args) {
+            var taskCompletionSource = new TaskCompletionSource<TResponseArgs>();
+            Send(requestType, args, (TResponseArgs result) => {
+                taskCompletionSource.SetResult(result);                
+            });
+            return taskCompletionSource.Task;
         }
 
         /**
@@ -268,6 +287,7 @@ namespace ElectronCgi.DotNet
             }
             catch (AggregateException ex)
             {
+                Console.Error.WriteLine(ex.Message);
                 if (IsLoggingEnabled)
                 {
                     var flattenedAggregateException = ex.Flatten();
