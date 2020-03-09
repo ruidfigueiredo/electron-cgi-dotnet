@@ -1,12 +1,16 @@
 # Electron CGI
 
-## Update version 1.0.0
+## Update version 1.0.1 
 
 - Error propagation to Node.js
 
     - An exception in a handler will be serialized and sent to Node.js (requires electron-cgi 1.0.0) and won't crash the process
 
 - Bugfixes
+
+## Update version 1.0.0
+
+- This version was uploaded incorrectly. Skip it.
 
 ## Update version 0.0.5
 
@@ -40,9 +44,17 @@ In NodeJs/Electron:
         console.log('Lost connection to the .Net process');
     };
     
-    connection.send('greeting', 'John', theGreeting => {
+    connection.send('greeting', 'John', (err, theGreeting) => {
+        if (err) {
+            console.log(err);
+            return;
+        }
         console.log(theGreeting); // will print "Hello John!"
     });
+
+    //or using promises
+
+    const theGreeting = await connection.send('greeting', 'John')
 
     connection.close();
 
