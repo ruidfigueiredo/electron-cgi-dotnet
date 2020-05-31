@@ -1,3 +1,5 @@
+using System;
+using System.Text;
 using Microsoft.Extensions.Logging;
 
 namespace ElectronCgi.DotNet
@@ -14,7 +16,10 @@ namespace ElectronCgi.DotNet
             _minimumLogLevel = minimumLogLevel;
             return this;
         }
-
+        public ConnectionBuilder UsingEncoding(Encoding encoding) {
+            Console.OutputEncoding = encoding;
+            return this;
+        }
         public Connection Build()
         {
             var serialiser = new JsonSerialiser();
