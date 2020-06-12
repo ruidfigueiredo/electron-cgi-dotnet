@@ -139,7 +139,7 @@ namespace ElectronCgi.DotNet
 
         public void Send<TResponseArgs>(string requestType, Action<TResponseArgs> responseHandler)
         {
-            SendAsync(requestType, new Func<object, Task>(arg => { responseHandler((TResponseArgs)Convert.ChangeType(arg, typeof(TResponseArgs))); return Task.CompletedTask; }));
+            SendAsync(requestType, new Func<TResponseArgs, Task>(arg => { responseHandler(arg); return Task.CompletedTask; }));
         }
 
         public void SendAsync<TResponseArgs>(string requestType, Func<TResponseArgs, Task> responseHandlerAsync)
@@ -181,7 +181,7 @@ namespace ElectronCgi.DotNet
 
         public void Send<TRequestArgs, TResponseArgs>(string requestType, TRequestArgs args, Action<TResponseArgs> responseHandler)
         {
-            SendAsync(requestType, args, new Func<object, Task>(arg => { responseHandler((TResponseArgs)Convert.ChangeType(arg, typeof(TResponseArgs))); return Task.CompletedTask; }));
+            SendAsync(requestType, args, new Func<TResponseArgs, Task>(arg => { responseHandler(arg); return Task.CompletedTask; }));
         }
 
         public void SendAsync<TRequestArgs, TResponseArgs>(string requestType, TRequestArgs args, Func<TResponseArgs, Task> responseHandlerAsync)
