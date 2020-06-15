@@ -7,11 +7,11 @@
   <PropertyGroup>
     <PackageId>ElectronCgi.DotNet</PackageId>
     <Title>Electron CGI DotNet</Title>
-    <PackageVersion>1.0.2</PackageVersion>
+    <PackageVersion>1.0.3</PackageVersion>
     <Authors>Rui Figueiredo rui@blinkingcaret.com (https://www.blinkingcaret.com)</Authors>
     <PackageDescription>Package to enable connecting .Net with Node applications through the electron-cgi npm package</PackageDescription>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <PackageReleaseNotes>Rerelease Errors in handlers are sent to Node.js. Pack requires previous build with the right configuration flag</PackageReleaseNotes>
+    <PackageReleaseNotes>Bugfix for Send losing response arg type information</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

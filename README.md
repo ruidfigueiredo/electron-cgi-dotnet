@@ -67,6 +67,10 @@ The way this communication channel is established is by using the connected proc
 
 ## Changelog
 
+## Update version 1.0.3
+
+Bugfix for `Connection.Send(requestType, arg, responseArg => {...})` where argument type information for the response argument type was being inadvertently discarded.
+
 ## Update version 1.0.2
 
 Added the the `UsingEncoding(System.Text.Encoding encoding)` method to `ConnectionBuilder`, usage:
