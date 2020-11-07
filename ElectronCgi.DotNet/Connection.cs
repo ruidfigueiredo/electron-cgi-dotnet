@@ -5,9 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
-using Microsoft.Extensions.Logging;
-using Serilog;
-
+using ElectronCgi.DotNet.Logging;
 namespace ElectronCgi.DotNet
 {
     public class Connection
@@ -18,9 +16,6 @@ namespace ElectronCgi.DotNet
         private readonly IChannelMessageFactory _channelMessageFactory;
         private readonly IResponseHandlerExecutor _responseHandlerExecutor;
         private readonly BufferBlock<IChannelMessage> _dispatchMessagesBufferBlock;
-        public bool IsLoggingEnabled { get; set; } = false;
-        public LogLevel MinimumLogLevel { get; set; } = LogLevel.Error;
-        public string LogFilePath { get; set; } = "electron-cgi.log";
         private readonly List<IRequestHandler> _requestHandlers = new List<IRequestHandler>();
         private readonly List<IResponseHandler> _responseHandlers = new List<IResponseHandler>();
 
@@ -216,35 +211,6 @@ namespace ElectronCgi.DotNet
             Start(Console.OpenStandardInput(), Console.Out);
         }
 
-        private void InitialiseLogger()
-        {
-            var loggerConfiguration = new LoggerConfiguration();
-            switch (MinimumLogLevel)
-            {
-                case LogLevel.Trace:
-                    loggerConfiguration = loggerConfiguration.MinimumLevel.Verbose();
-                    break;
-                case LogLevel.Information:
-                    loggerConfiguration = loggerConfiguration.MinimumLevel.Information();
-                    break;
-                case LogLevel.Debug:
-                    loggerConfiguration = loggerConfiguration.MinimumLevel.Debug();
-                    break;
-                case LogLevel.Warning:
-                    loggerConfiguration = loggerConfiguration.MinimumLevel.Warning();
-                    break;
-                case LogLevel.Critical:
-                case LogLevel.Error:
-                    loggerConfiguration = loggerConfiguration.MinimumLevel.Error();
-                    break;
-                case LogLevel.None:
-                    return;
-                default:
-                    throw new InvalidOperationException("Unknown log level");
-            }
-
-            Log.Logger = loggerConfiguration.WriteTo.File(LogFilePath).CreateLogger();
-        }
 
         /**
          * This will block the executing thread until inputStream is closed
@@ -254,9 +220,6 @@ namespace ElectronCgi.DotNet
             var channelClosedCancelationTokenSource = new CancellationTokenSource();
             try
             {
-                if (IsLoggingEnabled)
-                    InitialiseLogger();
-
                 _channel.Init(inputStream, writer);
 
                 _messageDispatcher.Init(_dispatchMessagesBufferBlock, _channel);
@@ -288,7 +251,7 @@ namespace ElectronCgi.DotNet
             catch (AggregateException ex)
             {
                 Console.Error.WriteLine(ex.Message);
-                if (IsLoggingEnabled)
+                if (Log.IsLoggingEnabled)
                 {
                     var flattenedAggregateException = ex.Flatten();
 

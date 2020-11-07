@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
-using Serilog;
+using ElectronCgi.DotNet.Logging;
 
 namespace ElectronCgi.DotNet
 {

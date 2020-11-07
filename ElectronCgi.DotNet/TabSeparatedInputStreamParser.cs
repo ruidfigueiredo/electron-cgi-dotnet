@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using Serilog;
+using ElectronCgi.DotNet.Logging;
 
 namespace ElectronCgi.DotNet
 {

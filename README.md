@@ -67,6 +67,10 @@ The way this communication channel is established is by using the connected proc
 
 ## Changelog
 
+## Update version 1.0.4
+
+Added ability to specify a custom ILogger in connection builder: `var connection = new ConnectionBuilder().connectTo(...).WithLogging(yourILogger).Build();`
+
 ## Update version 1.0.3
 
 Bugfix for `Connection.Send(requestType, arg, responseArg => {...})` where argument type information for the response argument type was being inadvertently discarded.

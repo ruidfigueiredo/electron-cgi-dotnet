@@ -7,11 +7,11 @@
   <PropertyGroup>
     <PackageId>ElectronCgi.DotNet</PackageId>
     <Title>Electron CGI DotNet</Title>
-    <PackageVersion>1.0.3</PackageVersion>
+    <PackageVersion>1.0.4</PackageVersion>
     <Authors>Rui Figueiredo rui@blinkingcaret.com (https://www.blinkingcaret.com)</Authors>
     <PackageDescription>Package to enable connecting .Net with Node applications through the electron-cgi npm package</PackageDescription>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <PackageReleaseNotes>Bugfix for Send losing response arg type information</PackageReleaseNotes>
+    <PackageReleaseNotes>Added the ability to use a custom ILogger for logging</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

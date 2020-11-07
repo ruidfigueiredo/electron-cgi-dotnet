@@ -1,4 +1,3 @@
-using Serilog;
 
 namespace ElectronCgi.DotNet
 {
