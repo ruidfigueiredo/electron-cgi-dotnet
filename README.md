@@ -1,6 +1,6 @@
 # Electron CGI
 
-[Electron CGI](https://www.blinkingcaret.com/2020/03/25/electroncgi-1-0-cross-platform-guis-for-net-core/) is a library that enables sending request form NodeJs and have them served by .NET.
+[Electron CGI](https://www.blinkingcaret.com/2020/03/25/electroncgi-1-0-cross-platform-guis-for-net-core/) is a library that enables creating requests in NodeJs that are then served by .NET.
 
 The npm package is called [_electron-cgi_](https://www.npmjs.com/package/electron-cgi).
 
